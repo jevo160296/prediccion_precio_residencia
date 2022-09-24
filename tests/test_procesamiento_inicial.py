@@ -9,8 +9,6 @@ from src.data.funciones_base import (
     reemplazar_fechas_nulas, reemplazar_ceros_por_nulos, convertir_tipos
 )
 
-from src.data.procesamiento_datos_limpios import FeatureEngineering
-
 
 class MyTestCase(unittest.TestCase):
     def setUp(self) -> None:
