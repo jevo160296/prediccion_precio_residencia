@@ -1,13 +1,15 @@
 import unittest
+from pathlib import Path
 
 import pandas as pd
 from pandas import DataFrame
-from src.jutils.data import DataUtils
-from pathlib import Path
+
 from src.data.funciones_base import (
     eliminar_duplicados, convertir_col_date_a_date, reemplazar_valores_extremos, reemplazar_nulos_por_la_media,
     reemplazar_fechas_nulas, reemplazar_ceros_por_nulos, convertir_tipos
 )
+from src.data.procesamiento_datos import LimpiezaCalidad
+from src.jutils.data import DataUtils
 
 
 class MyTestCase(unittest.TestCase):
@@ -21,6 +23,7 @@ class MyTestCase(unittest.TestCase):
             lambda df, path: df.to_parquet(path)
         )
         self._df = self._du_inicial.input_data
+        self._columnas_numericas = [columna for columna in self._df.columns if columna != 'date']
 
     @staticmethod
     def print_shape(df: DataFrame, msg: str = '', verbosity: int = 1) -> DataFrame:
@@ -28,8 +31,8 @@ class MyTestCase(unittest.TestCase):
             print(f'{msg}: {df.shape=}')
         return df
 
-    def test1_test_limpieza_inicial(self):
-        columnas_numericas = [columna for columna in self._df.columns if columna != 'date']
+    def run_limpieza_inicial(self) -> DataFrame:
+        columnas_numericas = self._columnas_numericas
         df = self._df \
             .pipe(self.print_shape, 'Inicio') \
             .pipe(convertir_tipos, columnas_numericas) \
@@ -43,7 +46,18 @@ class MyTestCase(unittest.TestCase):
             .pipe(self.print_shape, 'Después de los reemplazos') \
             .pipe(eliminar_duplicados) \
             .pipe(self.print_shape, 'Después de eliminar índices duplicados')
+        return df
+
+    def test1_test_limpieza_inicial(self):
+        df = self.run_limpieza_inicial()
         self.assertEqual(df['index'].duplicated().sum(), 0)
+        print('Listo')
+
+    def test2_test_limpieza_inicial_pipeline(self):
+        df_pd_pipe = self.run_limpieza_inicial()
+        li = LimpiezaCalidad(self._columnas_numericas)
+        df_sk_pipe = li.transform(self._df)
+        self.assertTrue(all(df_pd_pipe == df_sk_pipe))
         print('Listo')
 
 
