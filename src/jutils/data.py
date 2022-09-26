@@ -9,12 +9,14 @@ class DataUtils:
     def __init__(self,
                  data_folder_path: Path,
                  input_file_name: str,
+                 y_name: str = '',
                  load_data: Callable[[Path], DataFrame] = lambda input_filepath: pd.read_csv(input_filepath, sep=';'),
                  save_data: Callable[[DataFrame, Path], None] = lambda df, filepath: df.to_csv(filepath, sep=';',
                                                                                                index=False)
                  ):
         self.data_folder_path = data_folder_path
         self.input_file_name = input_file_name
+        self._y_name = y_name
         self._X_names: Union[None, list] = None
         self._data: Union[None, DataFrame] = None
         self._input_data: Union[None, DataFrame] = None
@@ -30,7 +32,7 @@ class DataUtils:
 
     @property
     def y_names(self):
-        return 'precio_kg'
+        return self._y_name
 
     @property
     def data(self) -> DataFrame:
