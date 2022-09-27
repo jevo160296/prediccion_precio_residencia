@@ -3,10 +3,15 @@ from typing import Union, List
 from pandas import DataFrame
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import FunctionTransformer
+from sklearn.preprocessing import FunctionTransformer, PowerTransformer, KBinsDiscretizer
 
 from src.data.funciones_base import convertir_tipos, eliminar_duplicados, convertir_col_date_a_date, \
     reemplazar_valores_extremos, reemplazar_nulos_por_la_media, reemplazar_fechas_nulas, reemplazar_ceros_por_nulos
+from src.features.limpiezaDatos1 import conversionTipoDatos, eliminacionColumnas, eliminacionOutliers, \
+    calculoVariablesAdicionales
+from src.features.procesamiento_datos import transformacion_logaritmica_y, entrenar_logaritmica, \
+    entrenar_logaritmica_y, transformacion_logaritmica, numericas_a_binarias, procesamiento_datos_faltantes, \
+    numericas_a_categoricas, entrenar_numericas_a_categoricas
 
 
 class LimpiezaCalidad(BaseEstimator, TransformerMixin):
@@ -41,7 +46,57 @@ class LimpiezaCalidad(BaseEstimator, TransformerMixin):
         return reemplazar_nulos_por_la_media(df, self.columnas_numericas)
 
     def fit(self, X: DataFrame, y=None):
-        self.pipeline.fit(X)
+        return self.pipeline.fit(X)
+
+    def transform(self, X: DataFrame, y=None) -> DataFrame:
+        return self.pipeline.transform(X)
+
+
+class ProcesamientoDatos(BaseEstimator, TransformerMixin):
+    def __init__(self, columnas_a_categoricas, columnas_a_logaritmo):
+        self._pipeline: Union[None, Pipeline] = None
+        self._pt: Union[None, PowerTransformer] = None
+        self._pty: Union[None, PowerTransformer] = None
+        self._kbd: Union[None, KBinsDiscretizer] = None
+        self.columnas_a_categoricas = columnas_a_categoricas
+        self.columnas_a_logaritmo = columnas_a_logaritmo
+
+    @property
+    def pipeline(self) -> Pipeline:
+        if self._pipeline is None:
+            self._pipeline = Pipeline([
+                ('eliminar_outliers', FunctionTransformer(eliminacionOutliers)),
+                ('conversion_tipos', FunctionTransformer(conversionTipoDatos)),
+                ('calculo_variables_adicionales', FunctionTransformer(calculoVariablesAdicionales)),
+                ('eliminacion_columnas', FunctionTransformer(eliminacionColumnas)),
+                ('procesamiento_datos_faltantes', FunctionTransformer(procesamiento_datos_faltantes)),
+                ('numericas_a_binarias', FunctionTransformer(numericas_a_binarias)),
+                ('transformacion_logaritmica', FunctionTransformer(self._transformacion_logaritmica)),
+                ('binarizacion', FunctionTransformer(self._numericas_a_categoricas)),
+                ('transformacion_logaritmica_y', FunctionTransformer(self._transformacion_logaritmica_y)),
+                ('passtrhough', None)
+            ]
+            )
+        return self._pipeline
+
+    def _transformacion_logaritmica(self, df: DataFrame) -> DataFrame:
+        if self._pt is None:
+            self._pt = entrenar_logaritmica(df)
+        return transformacion_logaritmica(df, self._pt)
+
+    def _numericas_a_categoricas(self, df: DataFrame) -> DataFrame:
+        if self._kbd is None:
+            self._kbd = entrenar_numericas_a_categoricas(df, self.columnas_a_categoricas)
+        return numericas_a_categoricas(df, self._kbd, self.columnas_a_categoricas)
+
+    def _transformacion_logaritmica_y(self, df: DataFrame) -> DataFrame:
+        if self._pty is None:
+            self._pty = entrenar_logaritmica_y(df)
+        return transformacion_logaritmica_y(df, self._pty)
+
+    def fit(self, X: DataFrame, y: DataFrame = None):
+        _ = self.pipeline.fit_transform(X)
+        return self.pipeline.fit(X)
 
     def transform(self, X: DataFrame, y=None) -> DataFrame:
         return self.pipeline.transform(X)
