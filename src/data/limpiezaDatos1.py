@@ -32,7 +32,7 @@ def conversionTipoDatos(data:pd.DataFrame)->pd.DataFrame:
 
 def calculoVariablesAdicionales(data: pd.DataFrame)->pd.DataFrame:
     data['yr_date'] = data['date'].dt.year
-    data['antiguedad_venta'] = data['yr_date'] - du.data['yr_built']
+    data['antiguedad_venta'] = data['yr_date'] - data['yr_built']
     data.drop(columns=['yr_date', 'date', 'yr_built'], inplace=True)
 
     return data
