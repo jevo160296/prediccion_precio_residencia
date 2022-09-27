@@ -1,19 +1,54 @@
 
 
 import pandas as pd
-from jutils.data import DataUtils
-from jutils.visual import Plot
-from sklearn.model_selection import train_test_split
-from pandas_profiling.profile_report import ProfileReport
-from pathlib import Path
 import numpy as np
+import logging
+from pathlib import Path
 
-du = DataUtils(
-    Path(r'..\data').resolve().absolute(),
-    "kc_house_dataDS.parquet",
-    lambda path: pd.read_parquet(path),
-    lambda df, path: df.to_parquet(path)
-)
-du.data = du.load_data(du.interim_path.joinpath(du.input_file_name))
 
-du.data
+
+def main(input_filepath, output_filepath):
+    """ Runs data feature engineering scripts to turn interim data from (../interim) into
+        cleaned data ready for machine learning (saved in ../processed).
+    """
+
+def eliminacionOutliers(data:pd.DataFrame)->pd.DataFrame:
+    data = data[data['price'] <= 1130000]
+    data = data[data['sqft_lot'] <= 350000]
+    data = data[data['bedrooms'] <= 5]
+    data = data[data['bedrooms'] > 0]
+    data = data[data['bathrooms'] <= 4]
+    data = data[data['bathrooms'] >= 1]
+
+    return data
+
+
+
+def conversionTipoDatos(data:pd.DataFrame)->pd.DataFrame:
+    variables_categoricas = ['grade', 'view', 'waterfront', 'condition', 'zipcode']
+    data[variables_categoricas] = data[variables_categoricas].astype('category')
+
+    return data
+
+def calculoVariablesAdicionales(data: pd.DataFrame)->pd.DataFrame:
+    data['yr_date'] = data['date'].dt.year
+    data['antiguedad_venta'] = data['yr_date'] - du.data['yr_built']
+    data.drop(columns=['yr_date', 'date', 'yr_built'], inplace=True)
+
+    return data
+
+
+def eliminacionColumnas(data: pd.DataFrame)->pd.DataFrame:
+    data.drop(columns=['lat', 'yr_renovated', 'long', 'jhygtf'], inplace=True)
+
+    return data
+
+
+
+
+
+
+
+
+
+
