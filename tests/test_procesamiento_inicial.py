@@ -20,6 +20,12 @@ from src.jutils.data import DataUtils
 
 
 class MyTestCase(unittest.TestCase):
+    @classmethod
+    def debugTestCase(cls):
+        loader = unittest.defaultTestLoader
+        testSuit = loader.loadTestsFromTestCase(cls)
+        testSuit.debug()
+
     def setUp(self) -> None:
         data_folder_path = Path('../data').resolve().absolute()
         self._du_inicial = DataUtils(
@@ -31,6 +37,8 @@ class MyTestCase(unittest.TestCase):
         )
         self._df = self._du_inicial.input_data
         self._columnas_numericas = [columna for columna in self._df.columns if columna != 'date']
+        self._columnas_a_logaritmo = ['sqft_above', 'sqft_living15', 'sqft_lot', 'sqft_lot15', 'sqft_living']
+        self._columnas_a_categoricas = ['sqft_lot', 'sqft_lot15']
 
     @staticmethod
     def print_shape(df: DataFrame, msg: str = '', verbosity: int = 1) -> DataFrame:
@@ -69,11 +77,12 @@ class MyTestCase(unittest.TestCase):
 
     def test3_procesamiento_datos(self):
         li = LimpiezaCalidad(self._columnas_numericas)
-        pda = ProcesamientoDatos()
+        pda = ProcesamientoDatos(self._columnas_a_categoricas, self._columnas_a_logaritmo)
         df = li.transform(self._df)
         df = pda.fit_transform(df)
         print('Listo')
 
 
 if __name__ == '__main__':
-    unittest.main()
+    # unittest.main()
+    MyTestCase.debugTestCase()
