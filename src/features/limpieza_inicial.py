@@ -2,6 +2,14 @@ from pandas import DataFrame
 from sklearn.preprocessing import PowerTransformer
 
 
+def procesamiento_datos_faltantes(df: DataFrame) -> DataFrame:
+    df = df.copy()
+    columnas_datosFaltantes = [columna for columna in df.columns if
+                               columna != 'date' and columna != 'sqft_basement' and columna != 'yr_renovated']
+    df = df.dropna(subset=columnas_datosFaltantes)
+    return df
+
+
 def numericas_a_binarias(df: DataFrame) -> DataFrame:
     # Se considerará que un apartamento tiene sótano si sqft_basement está nulo.
     df = df.copy()
