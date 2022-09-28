@@ -100,7 +100,7 @@ class DataUtils:
 
     @property
     def models_path(self):
-        path = self.data_folder_path.parent.joinpath('models/')
+        path = self.data_folder_path.parent.joinpath('models/model.joblib')
         return path
 
     @property
