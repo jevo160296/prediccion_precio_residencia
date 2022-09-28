@@ -9,6 +9,10 @@ class Modelo(BaseEstimator, RegressorMixin):
     def __init__(self):
         super(Modelo, self).__init__()
         self._pipeline: Union[None, Pipeline] = None
+        self._is_fitted = False
+
+    def __sklearn_is_fitted__(self):
+        return self._is_fitted
 
     @property
     def pipeline(self):
@@ -24,7 +28,9 @@ class Modelo(BaseEstimator, RegressorMixin):
         return self._pipeline
 
     def fit(self, X, y):
-        return self.pipeline.fit(X, y)
+        fitted = self.pipeline.fit(X, y)
+        self._is_fitted = True
+        return fitted
 
     def predict(self, X):
         return self.pipeline.predict(X)
