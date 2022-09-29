@@ -28,6 +28,7 @@ def calculoVariablesAdicionales(data: pd.DataFrame) -> pd.DataFrame:
 
 
 def eliminacionColumnas(data: pd.DataFrame) -> pd.DataFrame:
-    data.drop(columns=['lat', 'yr_renovated', 'long', 'jhygtf'], inplace=True)
+    columnas_a_eliminar = {'lat', 'yr_renovated', 'long', 'jhygtf'}.intersection(data.columns)
+    data.drop(columns=columnas_a_eliminar, inplace=True)
 
     return data

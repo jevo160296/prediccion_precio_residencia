@@ -71,9 +71,6 @@ class ProcesamientoDatos(BaseEstimator, TransformerMixin):
                 ('eliminacion_columnas', FunctionTransformer(eliminacionColumnas)),
                 ('procesamiento_datos_faltantes', FunctionTransformer(procesamiento_datos_faltantes)),
                 ('numericas_a_binarias', FunctionTransformer(numericas_a_binarias)),
-                ('transformacion_logaritmica', FunctionTransformer(self._transformacion_logaritmica)),
-                ('binarizacion', FunctionTransformer(self._numericas_a_categoricas)),
-                ('transformacion_logaritmica_y', FunctionTransformer(self._transformacion_logaritmica_y)),
                 ('passtrhough', None)
             ]
             )
