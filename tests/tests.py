@@ -3,7 +3,6 @@ from pathlib import Path
 
 import pandas as pd
 from pandas import DataFrame
-import numpy as np
 
 from src.data.funciones_base import (
     eliminar_duplicados, convertir_col_date_a_date, reemplazar_valores_extremos, reemplazar_nulos_por_la_media,

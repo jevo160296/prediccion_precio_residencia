@@ -1,24 +1,35 @@
 # -*- coding: utf-8 -*-
 
 import logging
+from pathlib import Path
 
 import click
 import pandas as pd
 from dotenv import find_dotenv, load_dotenv
-from sklearn.model_selection import train_test_split
+from pandas import DataFrame
+import numpy as np
 
-import src.data.preprocessing as preprocessing
+from src.data.procesamiento_datos import LimpiezaCalidad
 from src.jutils.data import DataUtils
 
 
-def main(data_folder_path, input_filename, porcentaje_entrenamiento):
-    """ Runs data processing scripts to turn raw data from (../raw) into
+def preprocessing(df: DataFrame) -> DataFrame:
+    _columnas_numericas = [columna for columna in df.columns if columna != 'date']
+    li = LimpiezaCalidad(_columnas_numericas)
+    if 'index' not in df.columns:
+        cant_filas = df.shape[0]
+        df['index'] = np.linspace(1, cant_filas, cant_filas)
+    return li.transform(df)
+
+
+def main(data_folder_path, input_filename: str):
+    """ Runs data processing scripts. to turn raw data from (../raw) into
         cleaned data ready to be analyzed (saved in ../processed).
     """
     input_filename_stem = input_filename.split('.')[0]
     input_filename = input_filename_stem + '.parquet'
     logger = logging.getLogger(__name__)
-    logger.info('making final data set from raw data')
+    logger.info('preprocesando el dataset')
     du = DataUtils(
         data_folder_path=data_folder_path,
         input_file_name=input_filename,
@@ -26,34 +37,24 @@ def main(data_folder_path, input_filename, porcentaje_entrenamiento):
         load_data=lambda path: pd.read_parquet(path),
         save_data=lambda df, path: df.to_parquet(path)
     )
-    if not du.preprocessed_file_path.exists():
-        preprocessing.main(data_folder_path, input_filename)
-    du.data = du.load_data(du.preprocessed_file_path)
-    if porcentaje_entrenamiento < 1:
-        df_train_test, df_validation = train_test_split(du.data, train_size=porcentaje_entrenamiento, random_state=1)
-    else:
-        df_train_test = du.data
-        df_validation = du.data[[False] * du.data.shape[0]]
-
+    input_filename_stem = input_filename.split('.')[0]
+    ruta = du.raw_path.joinpath(input_filename_stem+'.csv')
+    df_raw = pd.read_csv(ruta, sep=',', index_col=0)
+    du.data = preprocessing(df_raw)
     du.save_data(
-        df_train_test,
-        du.raw_train_test_path
-    )
-    du.save_data(
-        df_validation,
-        du.raw_validation_path
+        du.data,
+        du.preprocessed_file_path
     )
 
 
 @click.command()
 @click.argument('data_folder_path', type=click.types.Path(file_okay=False))
 @click.argument('input_filename', type=click.types.STRING)
-@click.argument('porcentaje_entrenamiento', type=click.types.FLOAT)
-def main_terminal(data_folder_path, input_filename, porcentaje_entrenamiento):
+def main_terminal(data_folder_path, input_filename):
     """ Runs data processing scripts to turn raw data from (../raw) into
         cleaned data ready to be analyzed (saved in ../processed).
     """
-    main(data_folder_path, input_filename, porcentaje_entrenamiento)
+    main(data_folder_path, input_filename)
 
 
 if __name__ == '__main__':

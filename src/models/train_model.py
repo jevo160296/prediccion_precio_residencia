@@ -1,38 +1,47 @@
-from modelo import Modelo
-from pandas import DataFrame
-import pandas as pd
-from src.data.make_dataset import make_dataset
-from src.jutils.data import DataUtils
+import logging
 from pathlib import Path
+
 import click
-from sklearn.model_selection import train_test_split
+import pandas as pd
+from pandas import DataFrame
+
+import src.features.build_features as build_features
+from src.jutils.data import DataUtils
+from src.models.modelo import Modelo
 
 
 def entrenar(df: DataFrame) -> Modelo:
     modelo = Modelo()
-    df = make_dataset(df)
     modelo.fit(df, df['price'])
     return modelo
 
 
-@click.command()
-@click.argument('input_filename', type=click.types.STRING)
-@click.argument('porcentaje_entrenamiento', type=click.types.FLOAT)
-def main(input_filename, porcentaje_entrenamiento):
+def main(data_folder_path, input_filename, porcentaje_entrenamiento):
+    input_filename_stem = input_filename.split('.')[0]
+    input_filename = input_filename_stem + '.parquet'
+    logger = logging.getLogger(__name__)
+    logger.info('Entrenando el modelo')
     du = DataUtils(
-        data_folder_path=Path('../../data').resolve().absolute(),
+        data_folder_path=data_folder_path,
         input_file_name=input_filename,
         y_name='price',
         load_data=lambda path: pd.read_parquet(path),
         save_data=lambda _df, path: _df.to_parquet(path)
     )
-    df = pd.read_csv(du.input_file_path, index_col=0, sep=',')
-    df_train_test, df_validation = train_test_split(df, train_size=porcentaje_entrenamiento, random_state=1)
-    modelo = entrenar(df_train_test)
-    du.save_data(df_train_test, du.raw_train_test_path)
-    du.save_data(df_validation, du.raw_validation_path)
+    if not du.transformed_train_test_path.exists():
+        build_features.main(data_folder_path, input_filename, porcentaje_entrenamiento, 'Entrenamiento')
+    df = du.load_data(du.transformed_train_test_path)
+    modelo = entrenar(df)
     du.model = modelo
 
 
+@click.command()
+@click.argument('data_folder_path', type=click.types.Path(file_okay=False))
+@click.argument('input_filename', type=click.types.STRING)
+@click.argument('porcentaje_entrenamiento', type=click.types.FLOAT)
+def main_terminal(data_folder_path, input_filename, porcentaje_entrenamiento):
+    main(data_folder_path, input_filename, porcentaje_entrenamiento)
+
+
 if __name__ == '__main__':
-    main()
+    main_terminal()
