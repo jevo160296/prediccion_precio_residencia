@@ -12,6 +12,9 @@ def eliminacionOutliers(data: pd.DataFrame) -> pd.DataFrame:
     data = data[data['bedrooms'] > 0]
     # data = data[data['bathrooms'] <= 4]
     # data = data[data['bathrooms'] >= 1]
+    x = 'sqft_lot'
+    filter1 = data[data[x] <= 17626][x].mean()
+    data.loc[data[x] > 17626, x] = filter1
 
     return data
 
