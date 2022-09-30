@@ -6,11 +6,15 @@ import pandas as pd
 from functools import wraps
 
 
-def create_parent_if_not_exists(funcion):
+def create_folder_if_not_exists(funcion):
     @wraps(funcion)
     def wrapper(*args, **kwargs):
         path: Path = funcion(*args, **kwargs)
-        path.parent.mkdir(parents=True, exist_ok=True)
+        if path.suffix == '':
+            folder = path
+        else:
+            folder = path.parent
+        folder.mkdir(parents=True, exist_ok=True)
         return path
 
     return wrapper
@@ -64,64 +68,64 @@ class DataUtils:
         joblib.dump(model, self.model_path)
 
     @property
-    @create_parent_if_not_exists
+    @create_folder_if_not_exists
     def input_file_path(self):
         return self.data_folder_path.joinpath('raw', self.input_file_name)
 
     @property
-    @create_parent_if_not_exists
+    @create_folder_if_not_exists
     def preprocessed_file_path(self):
         ruta_guardado = self.interim_path.joinpath(Path(self.input_file_name).with_suffix('.parquet').name)
         return ruta_guardado.with_stem(ruta_guardado.stem + '_preprocesado')
 
     @property
-    @create_parent_if_not_exists
+    @create_folder_if_not_exists
     def raw_validation_path(self):
         path = self.interim_path.joinpath(self.input_file_name)
         return path.with_stem(path.stem + '_validation')
 
     @property
-    @create_parent_if_not_exists
+    @create_folder_if_not_exists
     def raw_train_test_path(self):
         path = self.interim_path.joinpath(self.input_file_name)
         return path.with_stem(path.stem + '_train_test')
 
     @property
-    @create_parent_if_not_exists
+    @create_folder_if_not_exists
     def transformed_validation_path(self):
         path = self.raw_validation_path.with_stem(self.raw_validation_path.stem + '_processed')
         name = path.name
         return self.processed_path.joinpath(name)
 
     @property
-    @create_parent_if_not_exists
+    @create_folder_if_not_exists
     def transformed_train_test_path(self):
         path = self.raw_train_test_path.with_stem(self.raw_train_test_path.stem + '_processed')
         name = path.name
         return self.processed_path.joinpath(name)
 
     @property
-    @create_parent_if_not_exists
+    @create_folder_if_not_exists
     def model_path(self):
         path = self.data_folder_path.parent.joinpath('models/model.joblib')
         return path
 
     @property
-    @create_parent_if_not_exists
+    @create_folder_if_not_exists
     def external_path(self):
         return self.data_folder_path.joinpath('external/')
 
     @property
-    @create_parent_if_not_exists
+    @create_folder_if_not_exists
     def interim_path(self):
         return self.data_folder_path.joinpath('interim/')
 
     @property
-    @create_parent_if_not_exists
+    @create_folder_if_not_exists
     def processed_path(self):
         return self.data_folder_path.joinpath('processed/')
 
     @property
-    @create_parent_if_not_exists
+    @create_folder_if_not_exists
     def raw_path(self):
         return self.data_folder_path.joinpath('raw/')
