@@ -68,9 +68,10 @@ class ProcesamientoDatos(BaseEstimator, TransformerMixin):
                 ('eliminar_outliers', FunctionTransformer(eliminacionOutliers)),
                 ('conversion_tipos', FunctionTransformer(conversionTipoDatos)),
                 ('calculo_variables_adicionales', FunctionTransformer(calculoVariablesAdicionales)),
-                ('eliminacion_columnas', FunctionTransformer(eliminacionColumnas)),
+                # ('eliminacion_columnas', FunctionTransformer(eliminacionColumnas)),
                 ('procesamiento_datos_faltantes', FunctionTransformer(procesamiento_datos_faltantes)),
-                ('numericas_a_binarias', FunctionTransformer(numericas_a_binarias)),
+                # ('numericas_a_binarias', FunctionTransformer(numericas_a_binarias)),
+
                 ('passtrhough', None)
             ]
             )
