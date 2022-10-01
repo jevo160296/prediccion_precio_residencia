@@ -24,7 +24,8 @@ def main(steps: Steps = None, porcentaje_entrenamiento=0.7):
 
 
 @click.command()
-def main_terminal(porcentaje_entrenamiento=0.7):
+@click.option('-p', '--porcentaje-entrenamiento', type=float, required=False, default=0.7)
+def main_terminal(porcentaje_entrenamiento):
     main(porcentaje_entrenamiento=porcentaje_entrenamiento)
 
 

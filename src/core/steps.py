@@ -110,7 +110,10 @@ class Steps:
     @property
     def modelo(self):
         if self._modelo is None:
-            self._modelo = Modelo()
+            if not self.du.model_path.exists():
+                self._modelo = Modelo()
+            else:
+                self._modelo = self.du.model
         return self._modelo
 
     def predict_model_one(self, bedrooms, bathrooms, sqft_living, sqft_lot, floors, waterfront, view, grade, sqft_above,
@@ -191,7 +194,7 @@ class Steps:
         """
         self.log('Ejecutando prediction.')
         df_train_test_transformed, df_validation = self.feature_engineering(porcentaje_entrenamiento)
-        df_validation_transformed = self.processing(df_validation)
+        df_validation_transformed = self.processing.transform(df_validation)
         y_real_train_test = df_train_test_transformed[self.y_column]
         y_real_validation = df_validation_transformed[self.y_column]
         y_predict_train_test = self.modelo.predict(df_train_test_transformed)
