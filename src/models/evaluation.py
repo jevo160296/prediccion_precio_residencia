@@ -1,6 +1,7 @@
 from src.jutils.data import DataUtils
 from pathlib import Path
 from src.models.modelo import Modelo
+import logging
 import pandas as pd
 import click
 import src.features.build_features as build_features
@@ -8,16 +9,7 @@ import src.models.train_model as train_model
 from sklearn.metrics import r2_score
 
 
-def main(data_folder_path, input_filename, porcentaje_entrenamiento):
-    input_filename_stem = input_filename.split('.')[0]
-    input_filename = input_filename_stem + '.parquet'
-    du = DataUtils(
-        data_folder_path=data_folder_path,
-        input_file_name=input_filename,
-        y_name='price',
-        load_data=lambda path: pd.read_parquet(path),
-        save_data=lambda _df, path: _df.to_parquet(path)
-    )
+def main(porcentaje_entrenamiento=0.7):
     if not (du.transformed_train_test_path.exists() and du.transformed_validation_path.exists()):
         build_features.main(data_folder_path, input_filename, porcentaje_entrenamiento, "Entrenamiento")
         build_features.main(data_folder_path, input_filename, porcentaje_entrenamiento, "Validacion")
@@ -26,9 +18,6 @@ def main(data_folder_path, input_filename, porcentaje_entrenamiento):
     df_entrenamiento = du.load_data(du.transformed_train_test_path)
     df_validacion = du.load_data(du.transformed_validation_path)
     modelo: Modelo = du.model
-
-    print(f'Train shape: {df_entrenamiento.shape}')
-    print(f'Validation shape: {df_validacion.shape}')
 
     y_train_predict = modelo.predict(df_entrenamiento)
     y_validation_predict = modelo.predict(df_validacion)
@@ -54,4 +43,6 @@ def main_terminal(data_folder_path, input_filename, porcentaje_entrenamiento):
 
 
 if __name__ == '__main__':
+    log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    logging.basicConfig(level=logging.INFO, format=log_fmt)
     main_terminal()

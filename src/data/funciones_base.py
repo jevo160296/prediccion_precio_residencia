@@ -1,5 +1,6 @@
 from typing import Tuple, Callable
 
+import sklearn.exceptions
 from pandas import DataFrame
 from sklearn.model_selection import train_test_split
 from pathlib import Path
@@ -10,7 +11,7 @@ import numpy as np
 def convertir_tipos(df: DataFrame, columnas_a_convertir):
     _df = df.copy()
     total_filas = _df.shape[0]
-    for columna_numerica in columnas_a_convertir:
+    for columna_numerica in set(columnas_a_convertir).intersection(df.columns):
         if not pd.api.types.is_numeric_dtype(_df[columna_numerica]):
             # son_numericos = _df[columna_numerica].apply(pd.api.types.is_number)
             # cant = son_numericos.sum()
@@ -28,23 +29,28 @@ def validar_duplicados(df: DataFrame):
         f'De {filas} registros hay {cant_duplicados} filas duplicadas, representando el {cant_duplicados / filas:.2%}')
 
 
-def eliminar_duplicados(df: DataFrame):
+def eliminar_duplicados(df: DataFrame, index_dup_ok=True):
     # Eliminando duplicados
     # print(f'Antes de la eliminación de duplicados, el conjunto de datos tiene {df.shape[0]} filas.')
     df = df.drop_duplicates(keep='first')
-    filas = df.shape[0]
+    hay_index_duplicados = sum(validar_index_duplicados(df)) > 0
+    if hay_index_duplicados and not index_dup_ok:
+        raise sklearn.exceptions.ChangedBehaviorWarning('Después de la eliminación de duplicados exactos aún quedan '
+                                                        'index duplicados.')
     # print(f'Después de la eliminación de duplicados, el conjunto de datos queda con {filas} filas.')
     return df
 
 
 def convertir_col_date_a_date(df: DataFrame) -> DataFrame:
     _df = df.copy()
-    _df['date'] = pd.to_datetime(_df['date'], errors='coerce')
+    if 'date' in df.columns:
+        _df['date'] = pd.to_datetime(_df['date'], errors='coerce')
     return _df
 
 
 def reemplazar_valores_extremos(df: DataFrame, columnas_numericas) -> DataFrame:
     _df = df.copy()
+    columnas_numericas = list(set(columnas_numericas).intersection(df.columns))
     _df[columnas_numericas] = _df[columnas_numericas].where(lambda x: x > -1e+10, other=np.nan).where(
         lambda x: x < 1e+10, other=np.nan)
     return _df
@@ -55,6 +61,7 @@ def reemplazar_nulos_por_la_media(df: DataFrame, columnas_numericas) -> DataFram
     # reemplazados son entre registros con el mismo index y como al final se va a dejar un dataset con index únicos,
     # no hay riesgo que estén tanto en el set de entrenamiento como en el de test
     _df = df.copy()
+    columnas_numericas = list(set(columnas_numericas).intersection(df.columns))
     for columna_numerica in columnas_numericas:
         _df[columna_numerica] = _df[columna_numerica].fillna(
             _df.groupby('index')[columna_numerica].transform('median'))
@@ -64,15 +71,19 @@ def reemplazar_nulos_por_la_media(df: DataFrame, columnas_numericas) -> DataFram
 def reemplazar_fechas_nulas(df: DataFrame) -> DataFrame:
     _df = df.copy()
     # Reemplazando fechas nulas por la primera fecha no nula
-    _df['date'] = _df['date'].fillna(
-        _df.groupby(['index'], sort=False)['date'].apply(lambda x: x.ffill().bfill()))
+    if 'date' in df.columns:
+        _df['date'] = _df['date'].fillna(
+            _df.groupby(['index'], sort=False)['date'].apply(lambda x: x.ffill().bfill()))
     return _df
 
 
 def reemplazar_ceros_por_nulos(df: DataFrame) -> DataFrame:
     _df = df.copy()
     # Reemplazando ceros por valores nulos
-    _df[['sqft_basement', 'yr_renovated']] = _df[['sqft_basement', 'yr_renovated']].replace(0, np.nan)
+    if 'sqft_basement' in _df.columns:
+        _df['sqft_basement'] = _df['sqft_basement'].replace(0, np.nan)
+    if 'yr_renovated' in df.columns:
+        _df['yr_renovated'] = _df['yr_renovated'].replace(0, np.nan)
     return _df
 
 

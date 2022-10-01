@@ -10,7 +10,7 @@ from src.data.funciones_base import convertir_tipos, eliminar_duplicados, conver
 from src.features.limpiezaDatos1 import conversionTipoDatos, eliminacionColumnas, eliminacionOutliers, \
     calculoVariablesAdicionales
 from src.features.procesamiento_datos import transformacion_logaritmica_y, entrenar_logaritmica, \
-    entrenar_logaritmica_y, transformacion_logaritmica, numericas_a_binarias, procesamiento_datos_faltantes, \
+    entrenar_logaritmica_y, transformacion_logaritmica, numericas_a_binarias, eliminacion_datos_faltantes, \
     numericas_a_categoricas, entrenar_numericas_a_categoricas
 
 
@@ -30,7 +30,7 @@ class LimpiezaCalidad(BaseEstimator, TransformerMixin):
                 ('nulos_por_media', FunctionTransformer(self._reemplazar_nulos_por_la_media)),
                 ('fechas_nulas', FunctionTransformer(reemplazar_fechas_nulas)),
                 ('ceros_por_nulos', FunctionTransformer(reemplazar_ceros_por_nulos)),
-                ('eliminar_duplicados2', FunctionTransformer(eliminar_duplicados)),
+                ('eliminar_duplicados2', FunctionTransformer(eliminar_duplicados, kw_args={"index_dup_ok": False})),
                 ('passtrhough', None)
             ]
             )
@@ -46,10 +46,31 @@ class LimpiezaCalidad(BaseEstimator, TransformerMixin):
         return reemplazar_nulos_por_la_media(df, self.columnas_numericas)
 
     def fit(self, X: DataFrame, y=None):
-        return self.pipeline.fit(X)
+        return self.pipeline
 
     def transform(self, X: DataFrame, y=None) -> DataFrame:
         return self.pipeline.transform(X)
+
+
+class Preprocesamiento(BaseEstimator, TransformerMixin):
+    def __init__(self):
+        self._pipeline = None
+
+    @property
+    def pipeline(self) -> Pipeline:
+        if self._pipeline is None:
+            self._pipeline = Pipeline([
+                ('eliminar_outliers', FunctionTransformer(eliminacionOutliers)),
+                ('eliminacion_datos_faltantes', FunctionTransformer(eliminacion_datos_faltantes)),
+                ('passtrhough', None)
+            ])
+        return self._pipeline
+
+    def transform(self, X, y=None):
+        return self.pipeline.transform(X)
+
+    def fit(self, X, y=None):
+        return self.pipeline
 
 
 class ProcesamientoDatos(BaseEstimator, TransformerMixin):
@@ -65,13 +86,10 @@ class ProcesamientoDatos(BaseEstimator, TransformerMixin):
     def pipeline(self) -> Pipeline:
         if self._pipeline is None:
             self._pipeline = Pipeline([
-                ('eliminar_outliers', FunctionTransformer(eliminacionOutliers)),
                 ('conversion_tipos', FunctionTransformer(conversionTipoDatos)),
                 ('calculo_variables_adicionales', FunctionTransformer(calculoVariablesAdicionales)),
                 # ('eliminacion_columnas', FunctionTransformer(eliminacionColumnas)),
-                ('procesamiento_datos_faltantes', FunctionTransformer(procesamiento_datos_faltantes)),
                 # ('numericas_a_binarias', FunctionTransformer(numericas_a_binarias)),
-
                 ('passtrhough', None)
             ]
             )
@@ -94,7 +112,27 @@ class ProcesamientoDatos(BaseEstimator, TransformerMixin):
 
     def fit(self, X: DataFrame, y: DataFrame = None):
         _ = self.pipeline.fit_transform(X)
-        return self.pipeline.fit(X)
+        return self.pipeline
 
     def transform(self, X: DataFrame, y=None) -> DataFrame:
         return self.pipeline.transform(X)
+
+
+class PostProcesamiento(BaseEstimator, TransformerMixin):
+    def __init__(self):
+        self._pipeline = None
+
+    @property
+    def pipeline(self) -> Pipeline:
+        if self._pipeline is None:
+            self._pipeline = Pipeline([
+                ('eliminar_duplicados', FunctionTransformer(eliminar_duplicados)),
+                ('passtrhough', None)
+            ])
+        return self._pipeline
+
+    def transform(self, X, y=None):
+        return self.pipeline.transform(X)
+
+    def fit(self, X, y=None):
+        return self.pipeline

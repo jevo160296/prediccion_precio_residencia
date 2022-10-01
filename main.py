@@ -15,24 +15,37 @@ import src.models.predict_model as predict_model
 from enum import Enum
 
 
-class Opciones:
-    preprocessing = 'Preprocessing'
-    makedataset = 'MakeDataSet'
-    build_features_training = 'Build features training'
+class Opcion:
+    def __init__(self, nombre):
+        self._nombre = nombre
+
+    @property
+    def nombre(self):
+        return self._nombre
 
     def __repr__(self):
-        return vars(self)
+        return self._nombre
 
 
+class Opciones(Enum):
+    preprocessing = Opcion('Preprocessing')
+    makedataset = Opcion('MakeDataSet')
+    build_features_training = Opcion('Build features training')
+    build_features_validation = Opcion('Build features validation')
+    train_model = Opcion('Train model')
+    evaluation = Opcion('Evaluation')
+    preict_model = Opcion('Predict model')
+
+    def __repr__(self):
+        return str(self.value)
 
 
-def menu():
-    opciones = Opciones()
-    for index, opcion in enumerate(opciones):
-        print(f'{index + 1}. {opcion}')
+def menu() -> Opcion:
+    for index, opcion in enumerate(Opciones):
+        print(f'{index + 1}. {opcion.value.nombre}')
     opcion = int(input('Ingrese una opción: '))
-    print(f'Opcion seleccionada {opciones[opcion - 1]}')
-    return opciones[opcion - 1]
+    print(f'Opcion seleccionada {list(Opciones)[opcion - 1]}')
+    return list(Opciones)[opcion - 1]
 
 
 def main():
@@ -55,21 +68,21 @@ def main():
     def get_file():
         return requests.get(source_file)
 
-    if tarea == 'preprocessing':
+    if tarea == Opciones.preprocessing:
         preprocessing.main(get_data_folder_path(), get_input_filename())
-    elif tarea == 'makedataset':
+    elif tarea == Opciones.makedataset:
         make_dataset.main(get_data_folder_path(), get_input_filename(), get_porcentaje_entrenamiento())
-    elif tarea == 'build_features_training':
+    elif tarea == Opciones.build_features_training:
         build_features.main(get_data_folder_path(), get_input_filename(), get_porcentaje_entrenamiento(),
                             'Entrenamiento')
-    elif tarea == 'build_features_validation':
+    elif tarea == Opciones.build_features_validation:
         build_features.main(get_data_folder_path(), get_input_filename(), get_porcentaje_entrenamiento(),
                             'Validacion')
-    elif tarea == 'train_model':
+    elif tarea == Opciones.train_model:
         train_model.main(get_data_folder_path(), get_input_filename(), get_porcentaje_entrenamiento())
-    elif tarea == 'evaluation':
+    elif tarea == Opciones.evaluation:
         evaluation.main(get_data_folder_path(), get_input_filename(), get_porcentaje_entrenamiento())
-    elif tarea == 'predict_model':
+    elif tarea == Opciones.preict_model:
         predict_model.main(get_data_folder_path(), get_input_filename())
 
 

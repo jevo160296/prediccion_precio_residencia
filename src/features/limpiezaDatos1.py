@@ -2,6 +2,7 @@ import pandas as pd
 
 
 def eliminacionOutliers(data: pd.DataFrame) -> pd.DataFrame:
+    data = data.copy()
     data = data[data['price'] <= 1130000]
     data = data[data['sqft_lot'] <= 350000]
     x = 'bathrooms'
@@ -20,21 +21,25 @@ def eliminacionOutliers(data: pd.DataFrame) -> pd.DataFrame:
 
 
 def conversionTipoDatos(data: pd.DataFrame) -> pd.DataFrame:
-    variables_categoricas = ['grade', 'view', 'waterfront', 'condition', 'zipcode']
+    data = data.copy()
+    variables_categoricas = list({'grade', 'view', 'waterfront', 'condition', 'zipcode'}.intersection(data.columns))
     data[variables_categoricas] = data[variables_categoricas].astype('category')
 
     return data
 
 
 def calculoVariablesAdicionales(data: pd.DataFrame) -> pd.DataFrame:
-    data['yr_date'] = data['date'].dt.year
-    data['antiguedad_venta'] = data['yr_date'] - data['yr_built']
-    data.drop(columns=['yr_date', 'date', 'yr_built'], inplace=True)
+    data = data.copy()
+    if 'year_date' in data.columns and 'yr_built' in data.columns:
+        data['yr_date'] = data['date'].dt.year
+        data['antiguedad_venta'] = data['yr_date'] - data['yr_built']
+        data.drop(columns=['yr_date', 'date', 'yr_built'], inplace=True)
 
     return data
 
 
 def eliminacionColumnas(data: pd.DataFrame) -> pd.DataFrame:
+    data = data.copy()
     columnas_a_eliminar = {'lat', 'yr_renovated', 'long', 'jhygtf'}.intersection(data.columns)
     data.drop(columns=columnas_a_eliminar, inplace=True)
 

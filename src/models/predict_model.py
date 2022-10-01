@@ -2,58 +2,65 @@ import logging
 from pathlib import Path
 
 import click
-import pandas as pd
-import sklearn.utils.validation
-from pandas import DataFrame
-from sklearn.utils.validation import check_is_fitted
 
-from src.models.modelo import Modelo
-from src.jutils.data import DataUtils
-import src.features.build_features as build_features
+from src.core.steps import Steps
 
 
-def predecir(df: DataFrame, modelo: Modelo) -> DataFrame:
-    check_is_fitted(modelo, msg='El modelo no está entrenado aún, debe ejecutar el entrenamiento primero.')
-    df['price_predict'] = modelo.predict(df)
-    return df
-
-
-def main(data_folder_path, input_filename):
-    input_filename_stem = input_filename.split('.')[0]
-    input_filename = input_filename_stem + '.parquet'
+def main(
+        bedrooms,
+        bathrooms,
+        sqft_living,
+        sqft_lot,
+        floors,
+        waterfront,
+        view,
+        grade,
+        sqft_above,
+        lat,
+        sqft_living15,
+        steps: Steps = None
+):
     logger = logging.getLogger(__name__)
-    logger.info('realizando predicción.')
-    du = DataUtils(
-        data_folder_path=data_folder_path,
-        input_file_name=input_filename,
-        y_name='price',
-        load_data=lambda path: pd.read_parquet(path),
-        save_data=lambda _df, path: _df.to_parquet(path)
+
+    if steps is None:
+        steps = Steps.build(logger)
+
+    steps.predict_model_one(
+        bedrooms=bedrooms,
+        bathrooms=bathrooms,
+        sqft_living=sqft_living,
+        sqft_lot=sqft_lot,
+        floors=floors,
+        waterfront=waterfront,
+        view=view,
+        grade=grade,
+        sqft_above=sqft_above,
+        lat=lat,
+        sqft_living15=sqft_living15
     )
-    ruta_carga = du.transformed_train_test_path
-    if not ruta_carga.exists():
-        build_features.main(data_folder_path, input_filename, 1, "Entrenamiento")
-    df_preprocesado = du.load_data(ruta_carga)
-    if not du.model_path.exists():
-        raise sklearn.exceptions.NotFittedError('Primero se debe ejecutar el entrenamiento del modelo.')
-    modelo: Modelo = du.model
-    df = predecir(df_preprocesado, modelo)
-    ruta_guardado = du.processed_path.joinpath(
-        du.input_file_path.
-        with_stem(du.input_file_path.stem + '_predicho').
-        with_suffix('.parquet').
-        name)
-    du.save_data(df, ruta_guardado)
-    logger.info(f'Predicción guardada en {ruta_guardado}')
 
 
 @click.command()
-@click.argument('data_folder_path', type=click.types.Path(file_okay=False))
-@click.argument('input_filename', type=click.types.STRING)
-def main_terminal(data_folder_path, input_filename):
-    main(data_folder_path, input_filename)
+def main_terminal():
+    parametros = ['bedrooms',
+                  'bathrooms',
+                  'sqft_living',
+                  'sqft_lot',
+                  'floors',
+                  'waterfront',
+                  'view',
+                  'grade',
+                  'sqft_above',
+                  'lat',
+                  'sqft_living15']
+    kwargs = {}
+    for parametro in parametros:
+        kwargs[parametro] = input(f'Ingrese {parametro}')
+    main(**kwargs)
 
 
 if __name__ == '__main__':
+    log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    logging.basicConfig(level=logging.INFO, format=log_fmt)
     project_dir = Path(__file__).resolve().parents[2]
     main_terminal()
