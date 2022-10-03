@@ -2,10 +2,14 @@
 Module with graph utilities.
 """
 import plotly.express as px
+import plotly.basedatatypes as plt_types
 import pandas as pd
 from pandas import DataFrame
 import numpy as np
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+from typing import Union, Tuple
+import math
 
 
 # noinspection GrazieInspection
@@ -39,6 +43,13 @@ class Plot:
         return Plot(new_colors)
 
     @staticmethod
+    def px_to_trace(px_plot: go.Figure) -> Tuple[plt_types.BaseTraceType]:
+        for trace in px_plot.data:
+            if 'bingroup' in trace:
+                trace.pop('bingroup')
+        return px_plot.data
+
+    @staticmethod
     def combine_plots(plot1: go.Figure, plot2: go.Figure) -> go.Figure:
         """
         Une dos graficos en uno.
@@ -51,6 +62,33 @@ class Plot:
 
         """
         return go.Figure(data=plot1.data + plot2.data)
+
+    @staticmethod
+    def grid_subplot(*plots: go.Figure, rows: Union[None, int] = None, cols: int = 1, title=None, titles=None,
+                     **kwargs):
+        if cols is None and rows is None:
+            raise AttributeError('Se deben definir la cantidad de columnas y/o filas')
+        if rows is None:
+            sp_cols = cols
+            sp_rows = math.ceil(len(plots) / sp_cols)
+        elif cols is None:
+            sp_rows = rows
+            sp_cols = math.ceil(len(plots) / sp_rows)
+        else:
+            sp_rows = rows
+            sp_cols = cols
+        figure = go.Figure()
+        figure.update_layout(**kwargs)
+        subplot = make_subplots(rows=sp_rows, cols=sp_cols, subplot_titles=titles, figure=figure)
+        i = 0
+        for plot in plots:
+            subplot.add_trace(
+                Plot.px_to_trace(plot)[0],
+                row=i // sp_cols + 1, col=(i % sp_cols) + 1
+            )
+            i += 1
+        subplot.update_layout(title_text=title)
+        return subplot
 
     def heatmap(self, df: DataFrame, x: str, y: str, aggfunc=len, fill_value=0, **kwargs) -> go.Figure:
         """
@@ -81,19 +119,19 @@ class Plot:
             y (): Column to display in the y-axis. (Numerical)
             x (): Column to display in the x-axis. (Categorical | Numerical)
             title (): Plot title.
-            nbins: Cant of bins to plot when x is numerical.
+            nbins: Cant of bins to plot when x is numerical. 0 to set as much bins as distints values.
             notched (): Set a notch in the plot.
-            **kwargs (): Aditional parameters to pass to plotly.express.imshow.
+            **kwargs (): Aditional parameters to pass to plotly.express.box.
 
         Returns:
             A Figure that can be displayed with the method show().
 
         """
         transformed_df = df.copy()
-        if x is not None and pd.api.types.is_numeric_dtype(transformed_df[x]):
+        if nbins != 0 and x is not None and pd.api.types.is_numeric_dtype(transformed_df[x]):
             minimo = transformed_df[x].min()
             maximo = transformed_df[x].max()
-            limites = [round(x) for x in np.linspace(minimo, maximo, nbins)]
+            limites = list({round(x) for x in np.linspace(minimo, maximo, nbins)})
             labels = [f'[{lim_min}-{lim_max})'
                       for lim_min, lim_max in zip(limites[0:nbins - 1], limites[1:nbins])]
             bins = pd.cut(transformed_df[x], bins=limites, labels=labels, include_lowest=True)
@@ -155,6 +193,16 @@ class Plot:
             color=color,
             color_discrete_sequence=color_discrete_sequence,
             color_discrete_map=color_discrete_map, **kwargs)
+
+    def bar(self, df: DataFrame, x: str, max_bins=None) -> go.Figure:
+        _df = df.copy()
+        if max_bins is not None and len(_df[x].unique()) > max_bins and pd.api.types.is_numeric_dtype(_df[x]):
+            _df[x] = pd.cut(_df[x], max_bins)
+
+        grouped_counts = _df[x].value_counts()
+        grouped_counts = pd.DataFrame({'cant': list(grouped_counts), x: list(grouped_counts.index.astype('str'))})
+        return px.bar(grouped_counts, y=x, x='cant', orientation='h', title=x,
+                      color_discrete_sequence=self.color_discrete_sequence)
 
     def pyramid(self,
                 df: DataFrame,

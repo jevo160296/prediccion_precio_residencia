@@ -4,11 +4,23 @@ import logging
 
 import click
 import pandas as pd
+from pandas import DataFrame
 from dotenv import find_dotenv, load_dotenv
 from sklearn.model_selection import train_test_split
+from typing import Tuple
 
 import src.data.preprocessing as preprocessing
 from src.jutils.data import DataUtils
+
+
+def make_dataset(df: DataFrame, porcentaje_entrenamiento) -> Tuple[DataFrame, DataFrame]:
+    df = df.copy()
+    if porcentaje_entrenamiento < 1:
+        df_train_test, df_validation = train_test_split(df, train_size=porcentaje_entrenamiento, random_state=1)
+    else:
+        df_train_test = df
+        df_validation = df[[False] * df.shape[0]]
+    return df_train_test, df_validation
 
 
 def main(data_folder_path, input_filename, porcentaje_entrenamiento):
@@ -29,11 +41,8 @@ def main(data_folder_path, input_filename, porcentaje_entrenamiento):
     if not du.preprocessed_file_path.exists():
         preprocessing.main(data_folder_path, input_filename)
     du.data = du.load_data(du.preprocessed_file_path)
-    if porcentaje_entrenamiento < 1:
-        df_train_test, df_validation = train_test_split(du.data, train_size=porcentaje_entrenamiento, random_state=1)
-    else:
-        df_train_test = du.data
-        df_validation = du.data[[False] * du.data.shape[0]]
+
+    df_train_test, df_validation = make_dataset(du.data, porcentaje_entrenamiento)
 
     du.save_data(
         df_train_test,

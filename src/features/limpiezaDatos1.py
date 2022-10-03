@@ -1,22 +1,53 @@
+from typing import List, Dict, Callable
+
 import pandas as pd
+from pandas import DataFrame
+import numpy as np
 
 
-def eliminacionOutliers(data: pd.DataFrame) -> pd.DataFrame:
-    data = data[data['price'] <= 1130000]
-    data = data[data['sqft_lot'] <= 350000]
-    x = 'bathrooms'
-    filter1 = data[(data[x] >= 1) & (data[x] <= 4)][x].median()
-    data.loc[data[x] > 4, x] = filter1
-    data.loc[data[x] < 1, x] = filter1
-    data = data[data['bedrooms'] <= 5]
-    data = data[data['bedrooms'] > 0]
-    # data = data[data['bathrooms'] <= 4]
-    # data = data[data['bathrooms'] >= 1]
-    x = 'sqft_lot'
-    filter1 = data[data[x] <= 17626][x].mean()
-    data.loc[data[x] > 17626, x] = filter1
+def z_score_outliers(_df, _column):
+    """
+    Returns:
+        zscore, outlier
+    """
+    # Adaptado de https://www.kaggle.com/code/shweta2407/regression-on-housing-data-accuracy-87
+    # creating lists to store zscore and outliers
+    zscore = []
+    isoutlier = []
+    # for zscore generally taken thresholds are 2.5, 3 or 3.5 hence i took 3
+    threshold = 3
+    # calculating the mean of the passed column
+    mean = np.mean(_df[_column])
+    # calculating the standard deviation of the passed column
+    std = np.std(_df[_column])
+    for i in _df[_column]:
+        z = (i - mean) / std
+        zscore.append(z)
+        # if the zscore is greater than threshold = 3 that means it is an outlier
+        isoutlier.append(np.abs(z) > threshold)
+    return zscore, isoutlier
 
+
+def z_score_outliers_delete(df: DataFrame, columns: list) -> DataFrame:
+    df = df.copy()
+    for column in columns:
+        df = df[~pd.Series(z_score_outliers(df, column)[1], index=df.index)]
+    return df
+
+
+def eliminacionOutliers(data: pd.DataFrame, columns: list) -> pd.DataFrame:
+    data = data.copy()
+    data = z_score_outliers_delete(data, columns)
     return data
+
+
+def eliminacion_outliers_custom_function(df: DataFrame, columns: List[str],
+                                         isoutlier_funcs: Dict[str, Callable[[DataFrame], pd.Series]]) -> DataFrame:
+    df = df.copy()
+    for column in columns:
+        isoutlier = isoutlier_funcs[column](df)
+        df = df[~isoutlier]
+    return df
 
 
 def conversionTipoDatos(data: pd.DataFrame) -> pd.DataFrame:

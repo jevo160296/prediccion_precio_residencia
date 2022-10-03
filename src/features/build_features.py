@@ -11,10 +11,7 @@ from src.jutils.data import DataUtils
 
 
 def build_features(df: DataFrame) -> DataFrame:
-    _columnas_numericas = [columna for columna in df.columns if columna != 'date']
-    _columnas_a_logaritmo = ['sqft_above', 'sqft_living15', 'sqft_lot', 'sqft_lot15', 'sqft_living']
-    _columnas_a_categoricas = ['sqft_lot', 'sqft_lot15']
-    pda = ProcesamientoDatos(_columnas_a_categoricas, _columnas_a_logaritmo)
+    pda = ProcesamientoDatos()
     return pda.fit_transform(df)
 
 

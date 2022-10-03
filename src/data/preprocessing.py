@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 
 import logging
-from pathlib import Path
 
 import click
+import numpy as np
 import pandas as pd
 from dotenv import find_dotenv, load_dotenv
 from pandas import DataFrame
-import numpy as np
 
 from src.data.procesamiento_datos import LimpiezaCalidad
 from src.jutils.data import DataUtils

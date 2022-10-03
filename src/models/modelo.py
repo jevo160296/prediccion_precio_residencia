@@ -5,6 +5,7 @@ from sklearn.compose import make_column_transformer
 from sklearn.linear_model import LinearRegression
 from sklearn.pipeline import Pipeline, make_pipeline
 from sklearn.preprocessing import PolynomialFeatures
+from src.core.variables_globales import columnas_entrada
 
 
 class Modelo(BaseEstimator, RegressorMixin):
@@ -21,8 +22,7 @@ class Modelo(BaseEstimator, RegressorMixin):
         if self._pipeline is None:
             self._pipeline = make_pipeline(
                 make_column_transformer(
-                    ('passthrough', ['bedrooms', 'bathrooms', 'sqft_living', 'sqft_lot', 'floors', 'waterfront', 'view',
-                                     'grade', 'sqft_above', 'lat', 'sqft_living15'])
+                    ('passthrough', columnas_entrada)
                 ),
                 PolynomialFeatures(degree=2),
                 LinearRegression()
