@@ -3,16 +3,15 @@ from typing import Union, List, Callable
 import pandas as pd
 from pandas import DataFrame
 from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.compose import make_column_transformer
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import FunctionTransformer
 
+from src.core.variables_globales import columnas_entrada
 from src.data.funciones_base import convertir_tipos, eliminar_duplicados, convertir_col_date_a_date, \
     reemplazar_valores_extremos, reemplazar_nulos_por_la_media, reemplazar_fechas_nulas, reemplazar_ceros_por_nulos, \
     validar_index_duplicados, calcular_mediana_recortada, mediana_recortada_imputacion, validar_datos_nulos, \
     clasificar_columnas, seleccionar_columnas, calculo_variables_adicionales
 from src.features.limpiezaDatos1 import eliminacionOutliers, eliminacion_outliers_custom_function
-from src.core.variables_globales import columnas_entrada
 
 
 def outlier_nan(column: str) -> Callable[[DataFrame], pd.Series]:
@@ -20,6 +19,21 @@ def outlier_nan(column: str) -> Callable[[DataFrame], pd.Series]:
         return X[column].isna()
 
     return inner
+
+
+def outlier_bathrooms(X: DataFrame) -> pd.Series:
+    return (X['bathrooms'] == 0) | (X['bathrooms'] > 4) | (X['bathrooms'].isna())
+
+
+def outlier_bedrooms(X: DataFrame) -> pd.Series:
+    return (X['bedrooms'] == 0) | (X['bedrooms'] > 5) | (X['bedrooms'].isna())
+
+
+isoutliers_definitions = {
+    **{column: outlier_nan(column) for column in columnas_entrada + ['price']},
+    'bathrooms': outlier_bathrooms,
+    'bedrooms': outlier_bedrooms
+}
 
 
 class LimpiezaCalidad(BaseEstimator, TransformerMixin):
@@ -74,21 +88,6 @@ class Preprocesamiento(BaseEstimator, TransformerMixin):
         self._pipeline: Union[None, Pipeline] = None
         self.columnas_z_score = columnas_z_score
         self.columnas_drop_na = columnas_drop_na
-        self._isoutliers_definitions = {
-            'bathrooms': self.outlier_bathrooms,
-            'bedrooms': self.outlier_bedrooms,
-            'sqft_living': outlier_nan('sqft_living'),
-            'sqft_lot': outlier_nan('sqft_lot'),
-            'floors': outlier_nan('floors'),
-            'waterfront': outlier_nan('waterfront'),
-            'view': outlier_nan('view'),
-            'grade': outlier_nan('grade'),
-            'sqft_above': outlier_nan('sqft_above'),
-            'lat': outlier_nan('lat'),
-            'sqft_living15': outlier_nan('sqft_living15'),
-            'price': outlier_nan('price'),
-            'antiguedad_venta': outlier_nan('antiguedad_venta')
-        }
 
     @staticmethod
     def outlier_bathrooms(X: DataFrame) -> pd.Series:
@@ -110,7 +109,7 @@ class Preprocesamiento(BaseEstimator, TransformerMixin):
         return self._pipeline
 
     def _eliminacion_outliers_custom_function(self, df):
-        return eliminacion_outliers_custom_function(df, self.columnas_drop_na, self._isoutliers_definitions)
+        return eliminacion_outliers_custom_function(df, self.columnas_drop_na, isoutliers_definitions)
 
     def fit(self, X: DataFrame, y: DataFrame = None):
         return self.pipeline.fit(X)
@@ -128,24 +127,6 @@ class ProcesamientoDatos(BaseEstimator, TransformerMixin):
                                                    'sqft_lot15', 'condition', 'bathrooms', 'bedrooms',
                                                    'antiguedad_venta']
 
-        self._isoutliers_definitions = {
-            'bathrooms': self.outlier_bathrooms,
-            'bedrooms': self.outlier_bedrooms,
-            'sqft_living': outlier_nan('sqft_living'),
-            'sqft_lot': outlier_nan('sqft_lot'),
-            'floors': outlier_nan('floors'),
-            'waterfront': outlier_nan('waterfront'),
-            'view': outlier_nan('view'),
-            'grade': outlier_nan('grade'),
-            'sqft_above': outlier_nan('sqft_above'),
-            'lat': outlier_nan('lat'),
-            'sqft_living15': outlier_nan('sqft_living15'),
-            'zipcode': outlier_nan('zipcode'),
-            'sqft_lot15': outlier_nan('sqft_lot15'),
-            'condition': outlier_nan('condition'),
-            'fue_renovada': outlier_nan('fue_renovada'),
-            'antiguedad_venta': outlier_nan('antiguedad_venta')
-        }
         self._clasificacion_columnas = {
             'categorica_ordinal': ['zipcode', 'grade', 'view', 'waterfront', 'condition', 'lat', 'long'],
             'fecha': ['date'],
@@ -155,15 +136,6 @@ class ProcesamientoDatos(BaseEstimator, TransformerMixin):
             'numerica_discreta': ['bathrooms', 'bedrooms', 'yr_renovated', 'yr_built', 'jhygtf', 'yr_date',
                                   'antiguedad_venta', 'floors']
         }
-
-    @staticmethod
-    def outlier_bathrooms(X: DataFrame) -> pd.Series:
-        return (X['bathrooms'] == 0) | (X['bathrooms'] > 4) | (X['bathrooms'].isna())
-
-    @staticmethod
-    def outlier_bedrooms(X: DataFrame) -> pd.Series:
-        return (X['bedrooms'] == 0) | (X['bedrooms'] > 5) | (X['bedrooms'].isna())
-
 
     @property
     def pipeline(self) -> Pipeline:
@@ -177,7 +149,7 @@ class ProcesamientoDatos(BaseEstimator, TransformerMixin):
         return self._pipeline
 
     def _mediana_recortada_imputacion(self, df: DataFrame) -> DataFrame:
-        return mediana_recortada_imputacion(df, self._columnas_mediana_recortada_impute, self._isoutliers_definitions,
+        return mediana_recortada_imputacion(df, self._columnas_mediana_recortada_impute, isoutliers_definitions,
                                             self._medianas_recortadas)
 
     def _clasificar_columnas(self, df: DataFrame) -> DataFrame:
@@ -187,7 +159,7 @@ class ProcesamientoDatos(BaseEstimator, TransformerMixin):
         self._medianas_recortadas = {}
         for column in self._columnas_mediana_recortada_impute:
             self._medianas_recortadas[column] = calcular_mediana_recortada(X, column,
-                                                                           self._isoutliers_definitions[column](X))
+                                                                           isoutliers_definitions[column](X))
         return self.pipeline.fit(X)
 
     def transform(self, X: DataFrame, y=None) -> DataFrame:
