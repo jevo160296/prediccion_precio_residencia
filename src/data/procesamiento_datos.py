@@ -1,6 +1,7 @@
 from typing import Union, List, Callable
 
 import pandas as pd
+import numpy as np
 from pandas import DataFrame
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.pipeline import Pipeline

@@ -39,7 +39,7 @@ class TestsCase(unittest.TestCase):
             data_folder_path, 'kc_house_dataDS.csv', 'price', lambda path: pd.read_parquet(path),
             lambda df, path: df.to_parquet(path)
         )
-        self._df = self._du_inicial.input_data
+        self._df = self._du_inicial.load_data(self._du_inicial.input_file_path)
         self._columnas_numericas = [columna for columna in self._df.columns if columna != 'date']
         self._columnas_a_logaritmo = ['sqft_above', 'sqft_living15', 'sqft_lot', 'sqft_lot15', 'sqft_living']
         self._columnas_a_categoricas = ['sqft_lot', 'sqft_lot15']
@@ -81,7 +81,7 @@ class TestsCase(unittest.TestCase):
 
     def test3_procesamiento_datos(self):
         li = LimpiezaCalidad(self._columnas_numericas)
-        pda = ProcesamientoDatos(self._columnas_a_categoricas, self._columnas_a_logaritmo)
+        pda = ProcesamientoDatos()
         df = li.transform(self._df)
         df = pda.fit_transform(df)
         print('Listo')
@@ -89,7 +89,7 @@ class TestsCase(unittest.TestCase):
     def test4_entrenamiento_modelo(self):
         # Primero se procesarán los datos
         li = LimpiezaCalidad(self._columnas_numericas)
-        pda = ProcesamientoDatos(self._columnas_a_categoricas, self._columnas_a_logaritmo)
+        pda = ProcesamientoDatos()
         modelo = Modelo()
         df = self._df.pipe(li.transform).pipe(pda.fit_transform)
         modelo.fit(df, df['price'])
@@ -98,12 +98,21 @@ class TestsCase(unittest.TestCase):
     def test5_prediccion_modelo(self):
         # Primero se procesará los datos
         li = LimpiezaCalidad(self._columnas_numericas)
-        pda = ProcesamientoDatos(self._columnas_a_categoricas, self._columnas_a_logaritmo)
+        pda = ProcesamientoDatos()
         modelo = Modelo()
         df = self._df.pipe(li.transform).pipe(pda.fit_transform)
         modelo.fit(df, df['price'])
         df_predicho: DataFrame = modelo.predict(df)
         print(f'listo: {df_predicho.__hash__=}')
+
+    def test6_visuals_boxplot(self):
+        from src.jutils.visual import Plot
+        from src.data.procesamiento_datos import LimpiezaCalidad
+        plot = Plot()
+        df: DataFrame = self._du_inicial.load_data(self._du_inicial.input_file_path)
+        li = LimpiezaCalidad([x for x in df.columns if x != 'date'])
+        df = li.transform(df)
+        plot.box(df, x='antiguedad_venta', y='price', nbins=5).show()
 
 
 if __name__ == '__main__':

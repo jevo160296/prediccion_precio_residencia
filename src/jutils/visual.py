@@ -131,7 +131,7 @@ class Plot:
         if nbins != 0 and x is not None and pd.api.types.is_numeric_dtype(transformed_df[x]):
             minimo = transformed_df[x].min()
             maximo = transformed_df[x].max()
-            limites = list({round(x) for x in np.linspace(minimo, maximo, nbins)})
+            limites = sorted(list({round(x) for x in np.linspace(minimo, maximo, nbins)}))
             labels = [f'[{lim_min}-{lim_max})'
                       for lim_min, lim_max in zip(limites[0:nbins - 1], limites[1:nbins])]
             bins = pd.cut(transformed_df[x], bins=limites, labels=labels, include_lowest=True)
