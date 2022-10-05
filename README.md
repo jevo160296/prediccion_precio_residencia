@@ -9,13 +9,13 @@ Instalación
 2. Ejecutar el siguiente comando
 
 ------------
-    > pip install -r requirements.txt
+    pip install -r requirements.txt
     
 Ejecución
 ------------
 
 ------------
-    > python main.py
+    python main.py
 
 Project Organization
 ------------
