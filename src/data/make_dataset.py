@@ -1,26 +1,40 @@
 # -*- coding: utf-8 -*-
 
 import logging
+from pathlib import Path
 from typing import Tuple
 
 import click
 from dotenv import find_dotenv, load_dotenv
 from pandas import DataFrame
+from sklearn.model_selection import train_test_split
 
 from src.core.steps import Steps
+from src.core.variables_globales import deprecated
 
 
-def main(steps: Steps = None, porcentaje_entrenamiento=0.7) -> Tuple[DataFrame, DataFrame]:
-    """
-    Runs data processing scripts to turn raw data from (../raw) into
+@deprecated
+def make_dataset(df: DataFrame, porcentaje_entrenamiento) -> Tuple[DataFrame, DataFrame]:
+    df = df.copy()
+    if porcentaje_entrenamiento < 1:
+        df_train_test, df_validation = train_test_split(df, train_size=porcentaje_entrenamiento, random_state=1)
+    else:
+        df_train_test = df
+        df_validation = df[[False] * df.shape[0]]
+    return df_train_test, df_validation
+
+
+def main(steps: Steps = None, porcentaje_entrenamiento=0.7):
+    """ Runs data processing scripts to turn raw data from (../raw) into
         cleaned data ready to be analyzed (saved in ../processed).
-
-    :return:  df_train_test, df_validation
     """
     logger = logging.getLogger(__name__)
+    # not used in this stub but often useful for finding various files
+    project_dir = Path(__file__).resolve().parents[2]
     if steps is None:
-        steps = Steps.build(logger)
-    df_train_test, df_validation = steps.make_dataset(porcentaje_entrenamiento)
+        steps = Steps.build(folder_path=str(project_dir.absolute()), logger=logger)
+    df_train_test, df_validation = steps.make_dataset(porcentaje_entrenamiento=porcentaje_entrenamiento,
+                                                      modo_entrenamiento_validacion=False)
     steps.du.save_data(
         df_train_test,
         steps.du.raw_train_test_path

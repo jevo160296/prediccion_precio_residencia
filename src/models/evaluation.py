@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 
 import click
 
@@ -7,8 +8,10 @@ from src.core.steps import Steps
 
 def main(steps: Steps = None, porcentaje_entrenamiento=0.7):
     logger = logging.getLogger(__name__)
+    # not used in this stub but often useful for finding various files
+    project_dir = Path(__file__).resolve().parents[2]
     if steps is None:
-        steps = Steps.build(logger)
+        steps = Steps.build(str(project_dir), logger)
 
     score_train_test, score_validation = steps.evaluation(porcentaje_entrenamiento)
 

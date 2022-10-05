@@ -1,20 +1,28 @@
 import logging
+from pathlib import Path
 
 import click
-import pandas as pd
 from dotenv import find_dotenv, load_dotenv
 from pandas import DataFrame
 
-import src.data.make_dataset as make_dataset
+from src.core.variables_globales import deprecated
 from src.core.steps import Steps
+from src.data.procesamiento_datos import ProcesamientoDatos
 
 
-def main(steps=None, porcentaje_entrenamiento=0.7):
+@deprecated
+def build_features(df: DataFrame) -> DataFrame:
+    pda = ProcesamientoDatos()
+    return pda.fit_transform(df)
+
+
+def main(steps: Steps = None, porcentaje_entrenamiento=0.7):
     logger = logging.getLogger(__name__)
-
+    # not used in this stub but often useful for finding various files
+    project_dir = Path(__file__).resolve().parents[2]
     if steps is None:
-        steps = Steps.build(logger)
-    df_train_test_transformed, _ = steps.feature_engineering(porcentaje_entrenamiento)
+        steps = Steps.build(str(project_dir), logger)
+    df_train_test_transformed, df_validacion = steps.feature_engineering(porcentaje_entrenamiento, False)
 
     steps.du.save_data(
         df_train_test_transformed,
@@ -25,11 +33,12 @@ def main(steps=None, porcentaje_entrenamiento=0.7):
 
 
 @click.command()
-def main_terminal():
+@click.argument('porcentaje_entrenamiento', type=click.types.FLOAT, default=0.7)
+def main_terminal(porcentaje_entrenamiento):
     """ Runs data processing scripts to turn raw data from (../raw) into
         cleaned data ready to be analyzed (saved in ../processed).
     """
-    main()
+    main(porcentaje_entrenamiento=porcentaje_entrenamiento)
 
 
 if __name__ == '__main__':

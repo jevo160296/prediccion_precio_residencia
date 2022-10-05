@@ -30,8 +30,7 @@ class Opcion:
 class Opciones(Enum):
     preprocessing = Opcion('Preprocessing')
     makedataset = Opcion('MakeDataSet')
-    build_features_training = Opcion('Build features training')
-    build_features_validation = Opcion('Build features validation')
+    build_features = Opcion('Build features')
     train_model = Opcion('Train model')
     evaluation = Opcion('Evaluation')
     preict_model = Opcion('Predict model')
@@ -69,21 +68,17 @@ def main():
         return requests.get(source_file)
 
     if tarea == Opciones.preprocessing:
-        preprocessing.main(get_data_folder_path(), get_input_filename())
+        preprocessing.main()
     elif tarea == Opciones.makedataset:
-        make_dataset.main(get_data_folder_path(), get_input_filename(), get_porcentaje_entrenamiento())
-    elif tarea == Opciones.build_features_training:
-        build_features.main(get_data_folder_path(), get_input_filename(), get_porcentaje_entrenamiento(),
-                            'Entrenamiento')
-    elif tarea == Opciones.build_features_validation:
-        build_features.main(get_data_folder_path(), get_input_filename(), get_porcentaje_entrenamiento(),
-                            'Validacion')
+        make_dataset.main()
+    elif tarea == Opciones.build_features:
+        build_features.main()
     elif tarea == Opciones.train_model:
-        train_model.main(get_data_folder_path(), get_input_filename(), get_porcentaje_entrenamiento())
+        train_model.main()
     elif tarea == Opciones.evaluation:
-        evaluation.main(get_data_folder_path(), get_input_filename(), get_porcentaje_entrenamiento())
+        evaluation.main()
     elif tarea == Opciones.preict_model:
-        predict_model.main(get_data_folder_path(), get_input_filename())
+        predict_model.main(**{})
 
 
 if __name__ == '__main__':

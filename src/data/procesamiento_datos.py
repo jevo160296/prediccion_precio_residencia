@@ -1,17 +1,40 @@
-from typing import Union, List
+from typing import Union, List, Callable
 
+import pandas as pd
+import numpy as np
 from pandas import DataFrame
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import FunctionTransformer, PowerTransformer, KBinsDiscretizer
+from sklearn.preprocessing import FunctionTransformer
 
+from src.core.variables_globales import columnas_entrada
 from src.data.funciones_base import convertir_tipos, eliminar_duplicados, convertir_col_date_a_date, \
-    reemplazar_valores_extremos, reemplazar_nulos_por_la_media, reemplazar_fechas_nulas, reemplazar_ceros_por_nulos
-from src.features.limpiezaDatos1 import conversionTipoDatos, eliminacionColumnas, eliminacionOutliers, \
-    calculoVariablesAdicionales
-from src.features.procesamiento_datos import transformacion_logaritmica_y, entrenar_logaritmica, \
-    entrenar_logaritmica_y, transformacion_logaritmica, numericas_a_binarias, eliminacion_datos_faltantes, \
-    numericas_a_categoricas, entrenar_numericas_a_categoricas
+    reemplazar_valores_extremos, reemplazar_nulos_por_la_media, reemplazar_fechas_nulas, reemplazar_ceros_por_nulos, \
+    validar_index_duplicados, calcular_mediana_recortada, mediana_recortada_imputacion, validar_datos_nulos, \
+    clasificar_columnas, seleccionar_columnas, calculo_variables_adicionales
+from src.features.limpiezaDatos1 import eliminacionOutliers, eliminacion_outliers_custom_function
+
+
+def outlier_nan(column: str) -> Callable[[DataFrame], pd.Series]:
+    def inner(X: DataFrame):
+        return X[column].isna()
+
+    return inner
+
+
+def outlier_bathrooms(X: DataFrame) -> pd.Series:
+    return (X['bathrooms'] == 0) | (X['bathrooms'] > 4) | (X['bathrooms'].isna())
+
+
+def outlier_bedrooms(X: DataFrame) -> pd.Series:
+    return (X['bedrooms'] == 0) | (X['bedrooms'] > 5) | (X['bedrooms'].isna())
+
+
+isoutliers_definitions = {
+    **{column: outlier_nan(column) for column in columnas_entrada + ['price']},
+    'bathrooms': outlier_bathrooms,
+    'bedrooms': outlier_bedrooms
+}
 
 
 class LimpiezaCalidad(BaseEstimator, TransformerMixin):
@@ -30,8 +53,12 @@ class LimpiezaCalidad(BaseEstimator, TransformerMixin):
                 ('nulos_por_media', FunctionTransformer(self._reemplazar_nulos_por_la_media)),
                 ('fechas_nulas', FunctionTransformer(reemplazar_fechas_nulas)),
                 ('ceros_por_nulos', FunctionTransformer(reemplazar_ceros_por_nulos)),
-                ('eliminar_duplicados2', FunctionTransformer(eliminar_duplicados, kw_args={"index_dup_ok": False})),
-                ('passtrhough', None)
+                ('eliminar_duplicados2', FunctionTransformer(eliminar_duplicados)),
+                ('calculo_variables_adicionales', FunctionTransformer(calculo_variables_adicionales)),
+                ('validar_indices_duplicados', FunctionTransformer(validar_index_duplicados,
+                                                                   kw_args={'is_duplicated_ok': False})),
+                ('seleccionar_columnas', FunctionTransformer(seleccionar_columnas,
+                                                             kw_args={'columnas': columnas_entrada + ['price']}))
             ]
             )
         return self._pipeline
@@ -53,86 +80,88 @@ class LimpiezaCalidad(BaseEstimator, TransformerMixin):
 
 
 class Preprocesamiento(BaseEstimator, TransformerMixin):
-    def __init__(self):
-        self._pipeline = None
+    """
+    Esta clase tiene los métodos necesarios para realizar el preprocesamiento de los datos de entrenamiento (Esto no se
+    realiza para los datos de validación o predicción.
+    """
 
-    @property
-    def pipeline(self) -> Pipeline:
-        if self._pipeline is None:
-            self._pipeline = Pipeline([
-                ('eliminar_outliers', FunctionTransformer(eliminacionOutliers)),
-                ('eliminacion_datos_faltantes', FunctionTransformer(eliminacion_datos_faltantes)),
-                ('passtrhough', None)
-            ])
-        return self._pipeline
-
-    def transform(self, X, y=None):
-        return self.pipeline.transform(X)
-
-    def fit(self, X, y=None):
-        return self.pipeline
-
-
-class ProcesamientoDatos(BaseEstimator, TransformerMixin):
-    def __init__(self, columnas_a_categoricas, columnas_a_logaritmo):
+    def __init__(self, columnas_z_score, columnas_drop_na):
         self._pipeline: Union[None, Pipeline] = None
-        self._pt: Union[None, PowerTransformer] = None
-        self._pty: Union[None, PowerTransformer] = None
-        self._kbd: Union[None, KBinsDiscretizer] = None
-        self.columnas_a_categoricas = columnas_a_categoricas
-        self.columnas_a_logaritmo = columnas_a_logaritmo
+        self.columnas_z_score = columnas_z_score
+        self.columnas_drop_na = columnas_drop_na
+
+    @staticmethod
+    def outlier_bathrooms(X: DataFrame) -> pd.Series:
+        return (X['bathrooms'] == 0) | (X['bathrooms'] > 4)
+
+    @staticmethod
+    def outlier_bedrooms(X: DataFrame) -> pd.Series:
+        return (X['bedrooms'] == 0) | (X['bedrooms'] > 5)
 
     @property
     def pipeline(self) -> Pipeline:
         if self._pipeline is None:
             self._pipeline = Pipeline([
-                ('conversion_tipos', FunctionTransformer(conversionTipoDatos)),
-                ('calculo_variables_adicionales', FunctionTransformer(calculoVariablesAdicionales)),
-                # ('eliminacion_columnas', FunctionTransformer(eliminacionColumnas)),
-                # ('numericas_a_binarias', FunctionTransformer(numericas_a_binarias)),
-                ('passtrhough', None)
+                ('eliminar_outliers', FunctionTransformer(eliminacionOutliers,
+                                                          kw_args={'columns': self.columnas_z_score})),
+                ('eliminar_outliers_custom', FunctionTransformer(self._eliminacion_outliers_custom_function))
             ]
             )
         return self._pipeline
 
-    def _transformacion_logaritmica(self, df: DataFrame) -> DataFrame:
-        if self._pt is None:
-            self._pt = entrenar_logaritmica(df)
-        return transformacion_logaritmica(df, self._pt)
-
-    def _numericas_a_categoricas(self, df: DataFrame) -> DataFrame:
-        if self._kbd is None:
-            self._kbd = entrenar_numericas_a_categoricas(df, self.columnas_a_categoricas)
-        return numericas_a_categoricas(df, self._kbd, self.columnas_a_categoricas)
-
-    def _transformacion_logaritmica_y(self, df: DataFrame) -> DataFrame:
-        if self._pty is None:
-            self._pty = entrenar_logaritmica_y(df)
-        return transformacion_logaritmica_y(df, self._pty)
+    def _eliminacion_outliers_custom_function(self, df):
+        return eliminacion_outliers_custom_function(df, self.columnas_drop_na, isoutliers_definitions)
 
     def fit(self, X: DataFrame, y: DataFrame = None):
-        _ = self.pipeline.fit_transform(X)
-        return self.pipeline
+        return self.pipeline.fit(X)
 
     def transform(self, X: DataFrame, y=None) -> DataFrame:
         return self.pipeline.transform(X)
 
 
-class PostProcesamiento(BaseEstimator, TransformerMixin):
+class ProcesamientoDatos(BaseEstimator, TransformerMixin):
     def __init__(self):
-        self._pipeline = None
+        self._pipeline: Union[None, Pipeline] = None
+        self._medianas_recortadas = None
+        self._columnas_mediana_recortada_impute = ['bedrooms', 'bathrooms', 'sqft_living', 'sqft_lot', 'floors',
+                                                   'waterfront', 'view', 'grade', 'sqft_living15', 'zipcode',
+                                                   'sqft_lot15', 'condition', 'bathrooms', 'bedrooms',
+                                                   'antiguedad_venta']
+
+        self._clasificacion_columnas = {
+            'categorica_ordinal': ['zipcode', 'grade', 'view', 'waterfront', 'condition', 'lat', 'long'],
+            'fecha': ['date'],
+            'id': ['index'],
+            'numerica_continua': ['sqft_basement', 'sqft_above', 'sqft_living15', 'sqft_lot', 'price', 'sqft_lot15',
+                                  'sqft_living'],
+            'numerica_discreta': ['bathrooms', 'bedrooms', 'yr_renovated', 'yr_built', 'jhygtf', 'yr_date',
+                                  'antiguedad_venta', 'floors']
+        }
 
     @property
     def pipeline(self) -> Pipeline:
         if self._pipeline is None:
             self._pipeline = Pipeline([
-                ('eliminar_duplicados', FunctionTransformer(eliminar_duplicados)),
-                ('passtrhough', None)
-            ])
+                ('imputar_nulos_mediana', FunctionTransformer(self._mediana_recortada_imputacion)),
+                ('validar nulos', FunctionTransformer(validar_datos_nulos)),
+                ('conversion_tipos', FunctionTransformer(self._clasificar_columnas))
+            ]
+            )
         return self._pipeline
 
-    def transform(self, X, y=None):
-        return self.pipeline.transform(X)
+    def _mediana_recortada_imputacion(self, df: DataFrame) -> DataFrame:
+        return mediana_recortada_imputacion(df, self._columnas_mediana_recortada_impute, isoutliers_definitions,
+                                            self._medianas_recortadas)
 
-    def fit(self, X, y=None):
-        return self.pipeline
+    def _clasificar_columnas(self, df: DataFrame) -> DataFrame:
+        return clasificar_columnas(df, self._clasificacion_columnas)
+
+    def fit(self, X: DataFrame, y: DataFrame = None):
+        self._medianas_recortadas = {}
+        for column in self._columnas_mediana_recortada_impute:
+            self._medianas_recortadas[column] = calcular_mediana_recortada(X, column,
+                                                                           isoutliers_definitions[column](X))
+        return self.pipeline.fit(X)
+
+    def transform(self, X: DataFrame, y=None) -> DataFrame:
+        return self.pipeline.transform(X)

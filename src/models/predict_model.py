@@ -7,52 +7,62 @@ from src.core.steps import Steps
 
 
 def main(
-        bedrooms,
-        bathrooms,
-        sqft_living,
-        sqft_lot,
-        floors,
-        waterfront,
-        view,
+        zipcode,
         grade,
-        sqft_above,
-        lat,
+        view,
+        bathrooms,
+        bedrooms,
         sqft_living15,
+        waterfront,
+        floors,
+        sqft_lot,
+        condition,
+        sqft_lot15,
+        sqft_living,
+        fue_renovada,
+        antiguedad_venta,
         steps: Steps = None
 ):
     logger = logging.getLogger(__name__)
-
+    # not used in this stub but often useful for finding various files
+    project_dir = Path(__file__).resolve().parents[2]
     if steps is None:
-        steps = Steps.build(logger)
+        steps = Steps.build(str(project_dir), logger)
 
     steps.predict_model_one(
-        bedrooms=bedrooms,
-        bathrooms=bathrooms,
-        sqft_living=sqft_living,
-        sqft_lot=sqft_lot,
-        floors=floors,
-        waterfront=waterfront,
-        view=view,
+        zipcode=zipcode,
         grade=grade,
-        sqft_above=sqft_above,
-        lat=lat,
-        sqft_living15=sqft_living15
+        view=view,
+        bathrooms=bathrooms,
+        bedrooms=bedrooms,
+        sqft_living15=sqft_living15,
+        waterfront=waterfront,
+        floors=floors,
+        sqft_lot=sqft_lot,
+        condition=condition,
+        sqft_lot15=sqft_lot15,
+        sqft_living=sqft_living,
+        fue_renovada=fue_renovada,
+        antiguedad_venta=antiguedad_venta
     )
 
 
 @click.command()
 def main_terminal():
-    parametros = ['bedrooms',
-                  'bathrooms',
-                  'sqft_living',
-                  'sqft_lot',
-                  'floors',
-                  'waterfront',
-                  'view',
-                  'grade',
-                  'sqft_above',
-                  'lat',
-                  'sqft_living15']
+    parametros = ['zipcode', 
+                  'grade', 
+                  'view', 
+                  'bathrooms', 
+                  'bedrooms', 
+                  'sqft_living15', 
+                  'waterfront', 
+                  'floors', 
+                  'sqft_lot', 
+                  'condition', 
+                  'sqft_lot15', 
+                  'sqft_living', 
+                  'fue_renovada', 
+                  'antiguedad_venta']
     kwargs = {}
     for parametro in parametros:
         kwargs[parametro] = input(f'Ingrese {parametro}')
@@ -62,5 +72,4 @@ def main_terminal():
 if __name__ == '__main__':
     log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     logging.basicConfig(level=logging.INFO, format=log_fmt)
-    project_dir = Path(__file__).resolve().parents[2]
     main_terminal()

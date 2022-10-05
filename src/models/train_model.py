@@ -1,12 +1,15 @@
 import logging
+from pathlib import Path
 
 import click
 from pandas import DataFrame
 
+from src.core.variables_globales import deprecated
 from src.core.steps import Steps
 from src.models.modelo import Modelo
 
 
+@deprecated
 def entrenar(df: DataFrame) -> Modelo:
     modelo = Modelo()
     modelo.fit(df, df['price'])
@@ -15,8 +18,10 @@ def entrenar(df: DataFrame) -> Modelo:
 
 def main(steps: Steps = None, porcentaje_entrenamiento=0.7):
     logger = logging.getLogger(__name__)
+    # not used in this stub but often useful for finding various files
+    project_dir = Path(__file__).resolve().parents[2]
     if steps is None:
-        steps = Steps.build(logger)
+        steps = Steps.build(str(project_dir), logger)
 
     steps.du.model = steps.training(porcentaje_entrenamiento)
     logger.info(f'Modelo exitósamente entrenado, almacenado en {steps.du.model_path}')
