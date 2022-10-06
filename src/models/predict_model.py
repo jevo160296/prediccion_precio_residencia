@@ -2,13 +2,12 @@ import logging
 from pathlib import Path
 
 import click
-from sklearn.exceptions import NotFittedError
-
-from src.core.steps import Steps
 import pyinputplus as pyip
+from sklearn.exceptions import NotFittedError
 from sklearn.utils.validation import check_is_fitted
+
 import src.models.train_model as train_model
-import re
+from src.core.steps import Steps
 
 
 def get_prediction_values() -> dict:
@@ -16,17 +15,17 @@ def get_prediction_values() -> dict:
         return f'{msg} ({minimo} - {maximo}) '
 
     float_validations = {
-        'sqft_lot15': {'min': 659, 'max': 57140,
-                       'prompt': prompt('sqft_lot15 (Pies cuadrados del lote en el 2015) ', 659, 57140)},
-        'sqft_living15': {'min': 460, 'max': 5790, 'prompt': prompt('sqft_living15 (Pies cuadrados del área '
-                                                                    'habitable en el 2015) ', 460, 5790)},
-        'sqft_lot': {'min': 520, 'max': 137214, 'prompt': prompt('sqft_lot (Pies cuadrados del lote en la '
-                                                                 'actualidad) ', 520, 137214)},
-        'sqft_living': {'min': 290, 'max': 12050, 'prompt': prompt('sqft_living (Pies cuadrados del área habitable'
-                                                                   ' en la actualidad) ', 290, 12050)},
-        'bathrooms': {'min': 1, 'max': 4, 'prompt': prompt('bathrooms (Cantidad de baños) ', 1, 4)},
-        'bedrooms': {'min': 1, 'max': 5, 'prompt': prompt('bedrooms (Cantidad de habitaciones) ', 1, 5)},
-        'floors': {'min': 1, 'max': 3, 'prompt': prompt('floors (Cantidad de pisos construidos) ', 1, 3)}
+        'sqft_lot15': {'min': 700, 'max': 58000,
+                       'prompt': prompt('sqft_lot15: Pies cuadrados del lote en el 2015 ', 700, 57000)},
+        'sqft_living15': {'min': 500, 'max': 6000, 'prompt': prompt('sqft_living15: Pies cuadrados del área '
+                                                                    'habitable en el 2015 ', 500, 6000)},
+        'sqft_lot': {'min': 600, 'max': 140000, 'prompt': prompt('sqft_lot: Pies cuadrados del lote en la '
+                                                                 'actualidad ', 600, 130000)},
+        'sqft_living': {'min': 300, 'max': 12000, 'prompt': prompt('sqft_living: Pies cuadrados del área habitable'
+                                                                   ' en la actualidad ', 300, 11000)},
+        'bathrooms': {'min': 1, 'max': 4, 'prompt': prompt('bathrooms: Cantidad de baños ', 1, 4)},
+        'bedrooms': {'min': 1, 'max': 5, 'prompt': prompt('bedrooms: Cantidad de habitaciones ', 1, 5)},
+        'floors': {'min': 1, 'max': 3, 'prompt': prompt('floors: Cantidad de pisos construidos ', 1, 3)}
     }
     int_validations = {
         'grade': {'min': 1, 'max': 13, 'prompt': prompt('Grade ', 1, 13)},
