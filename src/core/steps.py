@@ -5,6 +5,7 @@ from pandas import DataFrame
 import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
+from src.core.variables_globales import columnas_raw
 
 from src.data.procesamiento_datos import LimpiezaCalidad, Preprocesamiento, ProcesamientoDatos
 from src.models.modelo import Modelo
@@ -82,7 +83,7 @@ class Steps:
     @property
     def columnas_numericas(self):
         if self._columnas_numericas is None:
-            self._columnas_numericas = list(set(self.raw_df.columns).difference(['date']))
+            self._columnas_numericas = list(set(columnas_raw).difference(['date']))
         return self._columnas_numericas
 
     @property

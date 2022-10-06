@@ -1,9 +1,9 @@
 from typing import Union, List, Callable
 
 import pandas as pd
-import numpy as np
 from pandas import DataFrame
 from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.exceptions import NotFittedError
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import FunctionTransformer
 
@@ -127,6 +127,7 @@ class ProcesamientoDatos(BaseEstimator, TransformerMixin):
                                                    'waterfront', 'view', 'grade', 'sqft_living15', 'zipcode',
                                                    'sqft_lot15', 'condition', 'bathrooms', 'bedrooms',
                                                    'antiguedad_venta']
+        self._is_fitted = False
 
         self._clasificacion_columnas = {
             'categorica_ordinal': ['zipcode', 'grade', 'view', 'waterfront', 'condition', 'lat', 'long'],
@@ -137,6 +138,9 @@ class ProcesamientoDatos(BaseEstimator, TransformerMixin):
             'numerica_discreta': ['bathrooms', 'bedrooms', 'yr_renovated', 'yr_built', 'jhygtf', 'yr_date',
                                   'antiguedad_venta', 'floors']
         }
+
+    def __sklearn_is_fitted__(self):
+        return self._is_fitted
 
     @property
     def pipeline(self) -> Pipeline:
@@ -161,7 +165,11 @@ class ProcesamientoDatos(BaseEstimator, TransformerMixin):
         for column in self._columnas_mediana_recortada_impute:
             self._medianas_recortadas[column] = calcular_mediana_recortada(X, column,
                                                                            isoutliers_definitions[column](X))
-        return self.pipeline.fit(X)
+        fitted = self.pipeline.fit(X)
+        self._is_fitted = True
+        return fitted
 
     def transform(self, X: DataFrame, y=None) -> DataFrame:
+        if self._medianas_recortadas is None:
+            raise NotFittedError('No se ha entrenado el modelo.')
         return self.pipeline.transform(X)
