@@ -17,6 +17,12 @@ Ejecución
 ------------
     python main.py
 
+Tests
+------------
+
+------------
+    python tests/tests.py
+
 Project Organization
 ------------
 
