@@ -1,16 +1,16 @@
 import unittest
 from pathlib import Path
 
-import pandas as pd
 from pandas import DataFrame
 
+from src.core.variables_globales import columnas_entrada
+from src.core.steps import Steps
 from src.data.funciones_base import (
     eliminar_duplicados, convertir_col_date_a_date, reemplazar_valores_extremos, reemplazar_nulos_por_la_media,
-    reemplazar_fechas_nulas, reemplazar_ceros_por_nulos, convertir_tipos
+    reemplazar_fechas_nulas, reemplazar_ceros_por_nulos, convertir_tipos, calculo_variables_adicionales,
+    seleccionar_columnas
 )
 from src.data.procesamiento_datos import LimpiezaCalidad, ProcesamientoDatos
-from src.jutils.data import DataUtils
-from src.models.modelo import Modelo
 
 
 class TestsCase(unittest.TestCase):
@@ -22,14 +22,8 @@ class TestsCase(unittest.TestCase):
 
     def setUp(self) -> None:
         data_folder_path = Path('../data').resolve().absolute()
-        self._du_inicial = DataUtils(
-            data_folder_path, 'kc_house_dataDS.csv', 'price', lambda path: pd.read_csv(path, sep=',', index_col=0),
-            lambda df, path: df.to_parquet(path))
-        self._du = DataUtils(
-            data_folder_path, 'kc_house_dataDS.csv', 'price', lambda path: pd.read_parquet(path),
-            lambda df, path: df.to_parquet(path)
-        )
-        self._df = self._du_inicial.load_data(self._du_inicial.input_file_path)
+        self._steps = Steps.build(str(data_folder_path))
+        self._df = self._steps.raw_df
         self._columnas_numericas = [columna for columna in self._df.columns if columna != 'date']
         self._columnas_a_logaritmo = ['sqft_above', 'sqft_living15', 'sqft_lot', 'sqft_lot15', 'sqft_living']
         self._columnas_a_categoricas = ['sqft_lot', 'sqft_lot15']
@@ -54,57 +48,38 @@ class TestsCase(unittest.TestCase):
             .pipe(reemplazar_ceros_por_nulos) \
             .pipe(self.print_shape, 'Después de los reemplazos') \
             .pipe(eliminar_duplicados) \
-            .pipe(self.print_shape, 'Después de eliminar índices duplicados')
+            .pipe(self.print_shape, 'Después de eliminar índices duplicados') \
+            .pipe(calculo_variables_adicionales) \
+            .pipe(seleccionar_columnas, columnas=columnas_entrada + ['price', 'index'])
         return df
 
     def test1_limpieza_inicial(self):
+        print('-'*100)
         df = self.run_limpieza_inicial()
         self.assertEqual(df['index'].duplicated().sum(), 0)
         print('Listo')
+        print('-' * 100)
 
     def test2_limpieza_inicial_pipeline(self):
-        df_pd_pipe = self.run_limpieza_inicial()
+        print('-' * 100)
+        df_pd_pipe = self.run_limpieza_inicial().drop(columns='index')
         li = LimpiezaCalidad(self._columnas_numericas)
         df_sk_pipe = li.transform(self._df)
-        self.assertTrue(all(df_pd_pipe == df_sk_pipe))
+        self.assertTrue(df_pd_pipe.shape == df_pd_pipe.shape)
+        self.assertTrue(all(df_pd_pipe == df_sk_pipe.reindex(columns=df_pd_pipe.columns)))
         print('Listo')
+        print('-' * 100)
 
     def test3_procesamiento_datos(self):
+        print('-' * 100)
         li = LimpiezaCalidad(self._columnas_numericas)
         pda = ProcesamientoDatos()
         df = li.transform(self._df)
         df = pda.fit_transform(df)
         print('Listo')
-
-    def test4_entrenamiento_modelo(self):
-        # Primero se procesarán los datos
-        li = LimpiezaCalidad(self._columnas_numericas)
-        pda = ProcesamientoDatos()
-        modelo = Modelo()
-        df = self._df.pipe(li.transform).pipe(pda.fit_transform)
-        modelo.fit(df, df['price'])
-        print('Listo')
-
-    def test5_prediccion_modelo(self):
-        # Primero se procesará los datos
-        li = LimpiezaCalidad(self._columnas_numericas)
-        pda = ProcesamientoDatos()
-        modelo = Modelo()
-        df = self._df.pipe(li.transform).pipe(pda.fit_transform)
-        modelo.fit(df, df['price'])
-        df_predicho: DataFrame = modelo.predict(df)
-        print(f'listo: {df_predicho.__hash__=}')
-
-    def test6_visuals_boxplot(self):
-        from src.jutils.visual import Plot
-        from src.data.procesamiento_datos import LimpiezaCalidad
-        plot = Plot()
-        df: DataFrame = self._du_inicial.load_data(self._du_inicial.input_file_path)
-        li = LimpiezaCalidad([x for x in df.columns if x != 'date'])
-        df = li.transform(df)
-        plot.box(df, x='antiguedad_venta', y='price', nbins=5).show()
+        print('-' * 100)
 
 
 if __name__ == '__main__':
-    # unittest.main()
-    TestsCase.debugTestCase()
+    unittest.main()
+    # TestsCase.debugTestCase()
