@@ -2,46 +2,42 @@ import logging
 from pathlib import Path
 
 import click
-import pandas as pd
+import joblib
 from pandas import DataFrame
 
-import src.features.build_features as build_features
-from src.jutils.data import DataUtils
+from src.core.variables_globales import deprecated
+from src.core.steps import Steps
 from src.models.modelo import Modelo
 
 
+@deprecated
 def entrenar(df: DataFrame) -> Modelo:
     modelo = Modelo()
     modelo.fit(df, df['price'])
     return modelo
 
 
-def main(data_folder_path, input_filename, porcentaje_entrenamiento):
-    input_filename_stem = input_filename.split('.')[0]
-    input_filename = input_filename_stem + '.parquet'
+def main(steps: Steps = None, porcentaje_entrenamiento=0.7):
     logger = logging.getLogger(__name__)
-    logger.info('Entrenando el modelo')
-    du = DataUtils(
-        data_folder_path=data_folder_path,
-        input_file_name=input_filename,
-        y_name='price',
-        load_data=lambda path: pd.read_parquet(path),
-        save_data=lambda _df, path: _df.to_parquet(path)
-    )
-    if not du.transformed_train_test_path.exists():
-        build_features.main(data_folder_path, input_filename, porcentaje_entrenamiento, 'Entrenamiento')
-    df = du.load_data(du.transformed_train_test_path)
-    modelo = entrenar(df)
-    du.model = modelo
+    # not used in this stub but often useful for finding various files
+    project_dir = Path(__file__).resolve().parents[2]
+    if steps is None:
+        steps = Steps.build(str(project_dir), logger)
+
+    steps.du.model, pda = steps.training(porcentaje_entrenamiento)
+    # Guardando preprocesamiento
+    joblib.dump(pda, steps.du.model_path.with_stem('pda'))
+    logger.info(f'Modelo exitósamente entrenado, almacenado en {steps.du.model_path}')
+    return steps.du.model
 
 
 @click.command()
-@click.argument('data_folder_path', type=click.types.Path(file_okay=False))
-@click.argument('input_filename', type=click.types.STRING)
-@click.argument('porcentaje_entrenamiento', type=click.types.FLOAT)
-def main_terminal(data_folder_path, input_filename, porcentaje_entrenamiento):
-    main(data_folder_path, input_filename, porcentaje_entrenamiento)
+@click.option('-p', '--porcentaje-entrenamiento', type=float, required=False, default=0.7)
+def main_terminal(porcentaje_entrenamiento):
+    main(porcentaje_entrenamiento=porcentaje_entrenamiento)
 
 
 if __name__ == '__main__':
+    log_fmt = '%(asctime)s - %(levelname)s - %(message)s'
+    logging.basicConfig(level=logging.INFO, format=log_fmt)
     main_terminal()

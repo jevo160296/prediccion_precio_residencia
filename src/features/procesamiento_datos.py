@@ -2,10 +2,9 @@ from pandas import DataFrame
 from sklearn.preprocessing import PowerTransformer, KBinsDiscretizer
 
 
-def procesamiento_datos_faltantes(df: DataFrame) -> DataFrame:
+def eliminacion_datos_faltantes(df: DataFrame) -> DataFrame:
     df = df.copy()
-    columnas_datosFaltantes = [columna for columna in df.columns if
-                               columna != 'date' and columna != 'sqft_basement' and columna != 'yr_renovated']
+    columnas_datosFaltantes = set(df.columns).difference(['date', 'sqft_basement', 'yr_renovated'])
     df = df.dropna(subset=columnas_datosFaltantes)
     return df
 

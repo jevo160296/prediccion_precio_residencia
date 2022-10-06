@@ -4,6 +4,9 @@ from pandas import DataFrame
 import joblib
 import pandas as pd
 from functools import wraps
+import requests
+import zipfile
+import tempfile
 
 
 def create_folder_if_not_exists(funcion):
@@ -129,3 +132,33 @@ class DataUtils:
     @create_folder_if_not_exists
     def raw_path(self):
         return self.data_folder_path.joinpath('raw/')
+
+
+class DataAccess:
+    def __init__(
+            self,
+            url,
+            du: DataUtils,
+            load_raw_df: Callable[[Path], DataFrame],
+            process_raw_file: Callable[[Path], Path] = lambda path: path,
+    ):
+        self._url = url
+        self._du = du
+        self._load_raw_df = load_raw_df
+        self._process_raw_file = process_raw_file
+        self._df = None
+
+    def get_df(self):
+        if not self._du.input_file_path.exists():
+            print(f'DataAccess - Descargando dataset de {self._url}')
+            response = requests.get(self._url)
+            path_to_downloaded_file = Path(tempfile.gettempdir()).joinpath('downloaded_file')
+            path_input = self._du.input_file_path
+            path_to_downloaded_file.open('wb').write(response.content)
+
+            print(f'DataAccess - Transformando archivo descargado en {path_to_downloaded_file}')
+            path_to_processed_file = self._process_raw_file(path_to_downloaded_file)
+
+            print(f'DataAccess - Moviendo archivo transformado a {path_input}')
+            path_to_processed_file.replace(path_input)
+        return self._load_raw_df(self._du.input_file_path)

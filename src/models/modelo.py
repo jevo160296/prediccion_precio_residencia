@@ -2,10 +2,9 @@ from typing import Union
 
 from sklearn.base import RegressorMixin, BaseEstimator
 from sklearn.compose import make_column_transformer
-from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import Ridge
 from sklearn.pipeline import Pipeline, make_pipeline
-from sklearn.preprocessing import PolynomialFeatures
-from src.core.variables_globales import columnas_entrada
+from sklearn.preprocessing import PolynomialFeatures, StandardScaler
 
 
 class Modelo(BaseEstimator, RegressorMixin):
@@ -22,10 +21,14 @@ class Modelo(BaseEstimator, RegressorMixin):
         if self._pipeline is None:
             self._pipeline = make_pipeline(
                 make_column_transformer(
-                    ('passthrough', columnas_entrada)
+                    ('passthrough', [
+                        'zipcode', 'grade', 'view', 'bathrooms', 'bedrooms', 'sqft_living15', 'waterfront', 'floors',
+                        'sqft_lot', 'condition', 'sqft_lot15', 'sqft_living', 'fue_renovada', 'antiguedad_venta'
+                    ])
                 ),
-                PolynomialFeatures(degree=2),
-                LinearRegression()
+                StandardScaler(),
+                PolynomialFeatures(degree=2, interaction_only=False),
+                Ridge(alpha=6.0)
             )
         return self._pipeline
 

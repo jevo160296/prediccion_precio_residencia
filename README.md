@@ -3,6 +3,20 @@ Trabajo ciencia de datos 1
 
 Proyecto de ciencia de datos en el que se realizará una exploración, limpieza y creación de modelos.
 
+Instalación
+------------
+1. Crear un nuevo ambiente virtual en python y activarlo
+2. Ejecutar el siguiente comando
+
+------------
+    pip install -r requirements.txt
+    
+Ejecución
+------------
+
+------------
+    python main.py
+
 Project Organization
 ------------
 

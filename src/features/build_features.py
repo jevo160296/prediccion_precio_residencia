@@ -1,56 +1,44 @@
 import logging
+from pathlib import Path
 
 import click
-import pandas as pd
 from dotenv import find_dotenv, load_dotenv
 from pandas import DataFrame
 
-import src.data.make_dataset as make_dataset
+from src.core.variables_globales import deprecated
+from src.core.steps import Steps
 from src.data.procesamiento_datos import ProcesamientoDatos
-from src.jutils.data import DataUtils
 
 
+@deprecated
 def build_features(df: DataFrame) -> DataFrame:
     pda = ProcesamientoDatos()
     return pda.fit_transform(df)
 
 
-def main(data_folder_path, input_filename, porcentaje_entrenamiento, set_train_validacion):
-    input_filename_stem = input_filename.split('.')[0]
-    input_filename = input_filename_stem + '.parquet'
+def main(steps: Steps = None, porcentaje_entrenamiento=0.7):
     logger = logging.getLogger(__name__)
-    logger.info('Buiding features')
-    du = DataUtils(
-        data_folder_path=data_folder_path,
-        input_file_name=input_filename,
-        y_name='price',
-        load_data=lambda path: pd.read_parquet(path),
-        save_data=lambda df, path: df.to_parquet(path)
+    # not used in this stub but often useful for finding various files
+    project_dir = Path(__file__).resolve().parents[2]
+    if steps is None:
+        steps = Steps.build(str(project_dir), logger)
+    df_train_test_transformed, df_validacion = steps.feature_engineering(porcentaje_entrenamiento, False)
+
+    steps.du.save_data(
+        df_train_test_transformed,
+        steps.du.transformed_train_test_path
     )
-    if not (du.raw_train_test_path.exists() and du.raw_validation_path.exists()):
-        make_dataset.main(data_folder_path, input_filename, porcentaje_entrenamiento)
-    if set_train_validacion == 'Entrenamiento':
-        du.data = du.load_data(du.raw_train_test_path)
-        ruta_guardado = du.transformed_train_test_path
-    elif set_train_validacion == 'Validacion':
-        du.data = du.load_data(du.raw_validation_path)
-        ruta_guardado = du.transformed_validation_path
-    else:
-        raise AttributeError('El atributo set_train_validacion solo puede ser Entrenamiento o Validacion')
-    df_transformado = build_features(du.data)
-    du.save_data(df_transformado, ruta_guardado)
+    logger.info(f'Resultado de transformar el train set guardado en {steps.du.transformed_train_test_path}')
+    return df_train_test_transformed
 
 
 @click.command()
-@click.argument('data_folder_path', type=click.types.Path(file_okay=False))
-@click.argument('input_filename', type=click.types.STRING)
-@click.argument('porcentaje_entrenamiento', type=click.types.FLOAT)
-@click.argument('set_train_validacion', type=click.types.Choice(['Entrenamiento', 'Validacion']))
-def main_terminal(data_folder_path, input_filename, porcentaje_entrenamiento, set_train_validacion):
+@click.argument('porcentaje_entrenamiento', type=click.types.FLOAT, default=0.7)
+def main_terminal(porcentaje_entrenamiento):
     """ Runs data processing scripts to turn raw data from (../raw) into
         cleaned data ready to be analyzed (saved in ../processed).
     """
-    main(data_folder_path, input_filename, porcentaje_entrenamiento, set_train_validacion)
+    main(porcentaje_entrenamiento=porcentaje_entrenamiento)
 
 
 if __name__ == '__main__':

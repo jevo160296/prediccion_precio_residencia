@@ -1,17 +1,19 @@
 # -*- coding: utf-8 -*-
 
 import logging
+from pathlib import Path
 
 import click
 import numpy as np
-import pandas as pd
 from dotenv import find_dotenv, load_dotenv
 from pandas import DataFrame
 
+from src.core.variables_globales import deprecated
+from src.core.steps import Steps
 from src.data.procesamiento_datos import LimpiezaCalidad
-from src.jutils.data import DataUtils
 
 
+@deprecated
 def preprocessing(df: DataFrame) -> DataFrame:
     _columnas_numericas = [columna for columna in df.columns if columna != 'date']
     li = LimpiezaCalidad(_columnas_numericas)
@@ -21,39 +23,32 @@ def preprocessing(df: DataFrame) -> DataFrame:
     return li.transform(df)
 
 
-def main(data_folder_path, input_filename: str):
+def main(steps: Steps = None):
     """ Runs data processing scripts. to turn raw data from (../raw) into
         cleaned data ready to be analyzed (saved in ../processed).
     """
-    input_filename_stem = input_filename.split('.')[0]
-    input_filename = input_filename_stem + '.parquet'
     logger = logging.getLogger(__name__)
-    logger.info('preprocesando el dataset')
-    du = DataUtils(
-        data_folder_path=data_folder_path,
-        input_file_name=input_filename,
-        y_name='price',
-        load_data=lambda path: pd.read_parquet(path),
-        save_data=lambda df, path: df.to_parquet(path)
-    )
-    input_filename_stem = input_filename.split('.')[0]
-    ruta = du.raw_path.joinpath(input_filename_stem+'.csv')
-    df_raw = pd.read_csv(ruta, sep=',', index_col=0)
-    du.data = preprocessing(df_raw)
-    du.save_data(
-        du.data,
-        du.preprocessed_file_path
-    )
+    # not used in this stub but often useful for finding various files
+    project_dir = Path(__file__).resolve().parents[2]
+    if steps is None:
+        steps = Steps.build(str(project_dir), logger)
+    df_transformado = steps.etl(False)
+
+    ruta_guardado = steps.du.interim_path.joinpath('etl.parquet')
+
+    steps.du.save_data(
+        df_transformado,
+        ruta_guardado)
+    logger.info(f'Resultado de preprocessing guardado exitosamente en {ruta_guardado}')
+    return df_transformado
 
 
 @click.command()
-@click.argument('data_folder_path', type=click.types.Path(file_okay=False))
-@click.argument('input_filename', type=click.types.STRING)
-def main_terminal(data_folder_path, input_filename):
+def main_terminal():
     """ Runs data processing scripts to turn raw data from (../raw) into
         cleaned data ready to be analyzed (saved in ../processed).
     """
-    main(data_folder_path, input_filename)
+    main()
 
 
 if __name__ == '__main__':
