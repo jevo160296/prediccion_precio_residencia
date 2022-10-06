@@ -78,7 +78,7 @@ def main():
     elif tarea == Opciones.evaluation:
         evaluation.main()
     elif tarea == Opciones.preict_model:
-        predict_model.main(**{})
+        predict_model.main()
 
 
 if __name__ == '__main__':

@@ -2,6 +2,7 @@ import logging
 from pathlib import Path
 
 import click
+import joblib
 from pandas import DataFrame
 
 from src.core.variables_globales import deprecated
@@ -23,7 +24,9 @@ def main(steps: Steps = None, porcentaje_entrenamiento=0.7):
     if steps is None:
         steps = Steps.build(str(project_dir), logger)
 
-    steps.du.model = steps.training(porcentaje_entrenamiento)
+    steps.du.model, pda = steps.training(porcentaje_entrenamiento)
+    # Guardando preprocesamiento
+    joblib.dump(pda, steps.du.model_path.with_stem('pda'))
     logger.info(f'Modelo exitósamente entrenado, almacenado en {steps.du.model_path}')
     return steps.du.model
 

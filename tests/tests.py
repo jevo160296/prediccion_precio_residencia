@@ -8,19 +8,9 @@ from src.data.funciones_base import (
     eliminar_duplicados, convertir_col_date_a_date, reemplazar_valores_extremos, reemplazar_nulos_por_la_media,
     reemplazar_fechas_nulas, reemplazar_ceros_por_nulos, convertir_tipos
 )
-
-from src.models.modelo import Modelo
-import plotly.express as px
-
-from src.features.procesamiento_datos import transformacion_logaritmica, entrenar_logaritmica, \
-    transformacion_logaritmica_y, entrenar_logaritmica_y, numericas_a_binarias
-
-from src.features.limpiezaDatos1 import conversionTipoDatos, eliminacionOutliers, eliminacionColumnas, \
-    calculoVariablesAdicionales
-
 from src.data.procesamiento_datos import LimpiezaCalidad, ProcesamientoDatos
 from src.jutils.data import DataUtils
-from src.jutils.visual import Plot
+from src.models.modelo import Modelo
 
 
 class TestsCase(unittest.TestCase):

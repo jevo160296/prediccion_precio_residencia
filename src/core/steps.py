@@ -1,6 +1,11 @@
+import datetime
+
+import joblib
 from pandas import DataFrame
 import numpy as np
 from sklearn.model_selection import train_test_split
+from sklearn.pipeline import Pipeline
+
 from src.data.procesamiento_datos import LimpiezaCalidad, Preprocesamiento, ProcesamientoDatos
 from src.models.modelo import Modelo
 from typing import Tuple, Callable, Union
@@ -10,6 +15,7 @@ from pathlib import Path
 import zipfile
 import pandas as pd
 import logging
+import datetime
 
 
 class Steps:
@@ -94,7 +100,10 @@ class Steps:
     @property
     def processing(self):
         if self._processing is None:
-            self._processing = ProcesamientoDatos()
+            if self.du.model_path.with_stem('pda').exists():
+                self._processing = joblib.load(self.du.model_path.with_stem('pda'))
+            else:
+                self._processing = ProcesamientoDatos()
         return self._processing
 
     @property
@@ -106,8 +115,9 @@ class Steps:
                 self._modelo = self.du.model
         return self._modelo
 
-    def predict_model_one(self, zipcode, grade, view, bathrooms, bedrooms, sqft_living15, waterfront, floors,
-                          sqft_lot, condition, sqft_lot15, sqft_living, fue_renovada, antiguedad_venta):
+    def predict_model_one(self, zipcode, grade, view, bathrooms, bedrooms, sqft_living15, waterfront, floors, sqft_lot,
+                          condition, sqft_lot15, sqft_living, yr_renovated, yr_built
+                          ):
         dictionary = {
             'zipcode': [zipcode],
             'grade': [grade],
@@ -121,8 +131,8 @@ class Steps:
             'condition': [condition],
             'sqft_lot15': [sqft_lot15],
             'sqft_living': [sqft_living],
-            'fue_renovada': [fue_renovada],
-            'antiguedad_venta': [antiguedad_venta]
+            'yr_renovated': [yr_renovated],
+            'yr_built': [yr_built]
         }
         df = pd.DataFrame.from_dict(dictionary)
         return self.predict_model_many(df)
@@ -131,6 +141,11 @@ class Steps:
         if 'index' not in df.columns:
             rows = df.shape[0]
             df['index'] = np.linspace(1, rows, rows).round()
+        columnas_no_usadas = ['sqft_basement',
+                              'sqft_above', 'sqft_living15', 'lat', 'long', 'jhygtf', 'price', 'wertyj']
+        for columna_no_usada in columnas_no_usadas:
+            df[columna_no_usada] = 1
+        df['date'] = str(datetime.datetime.now())
         df_transformed = df.pipe(self.li.transform).pipe(self.processing.transform)
         df_predicted = self.du.model.predict(df_transformed)
         return df_predicted
@@ -186,12 +201,12 @@ class Steps:
             pipe(self.processing.fit_transform)
         return df_train_test_transformed, df_validation_transformed
 
-    def training(self, porcentaje_entrenamiento) -> Modelo:
+    def training(self, porcentaje_entrenamiento) -> Tuple[Modelo, Pipeline]:
         modo_entrenamiento_validacion = True
         df_train_test_transformed, _ = self.feature_engineering(porcentaje_entrenamiento, modo_entrenamiento_validacion)
         self.log('Ejecutando training.')
         self.modelo.fit(df_train_test_transformed[self.X_columns], df_train_test_transformed[self.y_column])
-        return self.modelo
+        return self.modelo, self.processing
 
     def prediction(self, porcentaje_entrenamiento, modo_entrenamiento_validacion: bool):
         """
