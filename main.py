@@ -41,6 +41,7 @@ def main():
         elif tarea == Opciones.preict_model.value:
             predict_model.main()
         if tarea != Opciones.salir.value:
+            print()
             input('Presione enter para continuar.')
             print()
             print()
