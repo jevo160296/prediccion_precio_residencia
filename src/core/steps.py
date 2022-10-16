@@ -49,7 +49,7 @@ class Steps:
     @classmethod
     def build(cls, folder_path: str, logger: Union[None, logging.Logger] = None):
         du = DataUtils(
-            Path(folder_path + r'\data'),
+            Path(folder_path + '/data'),
             'kc_house_dataDS.parquet',
             'price',
             load_data=lambda path: pd.read_parquet(path),
@@ -59,7 +59,7 @@ class Steps:
         def process_raw_file(path_to_downloaded_file: Path):
             with zipfile.ZipFile(path_to_downloaded_file, 'r') as zip_ref:
                 zip_ref.extractall(path_to_downloaded_file.parent)
-            path_to_processed_file = path_to_downloaded_file.parent.joinpath(r'HouseKing\kc_house_dataDS.csv')
+            path_to_processed_file = path_to_downloaded_file.parent.joinpath('HouseKing/kc_house_dataDS.csv')
             return path_to_processed_file
 
         da = DataAccess(r'https://bit.ly/3orsN0U', du, lambda path: pd.read_csv(path, sep=',', index_col=0),

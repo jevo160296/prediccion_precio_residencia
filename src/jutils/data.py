@@ -110,7 +110,7 @@ class DataUtils:
     @property
     @create_folder_if_not_exists
     def model_path(self):
-        path = self.data_folder_path.parent.joinpath('models/model.joblib')
+        path = self.data_folder_path.parent.joinpath(r'models/model.joblib')
         return path
 
     @property
