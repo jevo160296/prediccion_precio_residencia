@@ -17,6 +17,16 @@ Ejecución
 ------------
     python main.py
 
+Ejecución desde el navegador
+------------
+
+------------
+[Link streamlit](https://jevo160296-prediccion-precio-residencia-streamlitindex-13n7p2.streamlit.app/)
+
+Ejecución desde la línea de comandos
+    
+    streamlit run .\streamlit\index.py
+
 Tests
 ------------
 
