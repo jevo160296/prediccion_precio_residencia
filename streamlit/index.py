@@ -66,4 +66,4 @@ if st.button('Calcular predicción', type='primary'):
         yr_renovated=yr_renovated,
         yr_built=yr_built
     )
-    st.write(f'Se estima un valor de la casa de: **${prediccion[0]:,.0f}**')
+    st.write(f'Se estima un valor de la casa de: **USD${prediccion[0]:,.0f}**')
