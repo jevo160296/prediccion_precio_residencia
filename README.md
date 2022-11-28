@@ -1,29 +1,41 @@
-Trabajo ciencia de datos 1
+King County house sales prediction
 ==============================
 
-Proyecto de ciencia de datos en el que se realizará una exploración, limpieza y creación de modelos.
+The kc_house_dataset was used to train a ridge linear model wich predicts the cost of a house
+given a set of predictive variables such as:
+- zip code
+- Living square foot area
+- Lot square foot area
+- Lot square foot area on 2015
+- Living square foot area on 2015
+- View
+- Bathrooms
+- Bedrooms
+- Floors
+- Condition
+- Build year
 
-Instalación
+Installation
 ------------
-1. Crear un nuevo ambiente virtual en python y activarlo
-2. Ejecutar el siguiente comando
+1. Create and activate a python virtual enviornment
+2. Execute the following command
 
 ------------
     pip install -r requirements.txt
     
-Ejecución
+Execution
 ------------
 
 ------------
     python main.py
 
-Ejecución desde el navegador
+Browser execution
 ------------
 
 ------------
 [Link streamlit](https://jevo160296-prediccion-precio-residencia-streamlitindex-13n7p2.streamlit.app/)
 
-Ejecución desde la línea de comandos
+Local execution
     
     streamlit run .\streamlit\index.py
 
