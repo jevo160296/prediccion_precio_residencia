@@ -15,6 +15,10 @@ given a set of predictive variables such as:
 - Condition
 - Build year
 
+The model can be used in the following [Link](https://jevo160296-prediccion-precio-residencia-streamlitindex-13n7p2.streamlit.app/)
+
+The model can also be used in the local machine following the next steps
+
 Installation
 ------------
 1. Create and activate a python virtual enviornment
